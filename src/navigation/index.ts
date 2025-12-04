@@ -7,6 +7,7 @@
 export { RootNavigator } from './RootNavigator';
 export { AuthStack } from './AuthStack';
 export { MainTabNavigator } from './MainTabNavigator';
+export { HomeStack } from './HomeStack';
 export { MatchesStack } from './MatchesStack';
 export { TurfsStack } from './TurfsStack';
 export { LearnStack } from './LearnStack';

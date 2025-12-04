@@ -1,12 +1,18 @@
 /**
- * API Services Module
- *
- * Placeholder for API service functions (REST, GraphQL, etc.)
- * Services will handle data fetching, authentication, and API interactions.
+ * Services Module
+ * 
+ * Central export point for all API services.
+ * 
+ * TODO: Add actual API services here (auth, matches, turfs, users, etc.)
  */
 
-// Example structure:
-// export { authService } from './authService';
-// export { matchesService } from './matchesService';
+export * from './matchService';
+export * from './turfService';
+export * from './scoringService';
+export * from './learnService';
+export * from './awsLambdaClient';
+export * from './user';
+export * as TurfsApi from './turfs';
+export * as MatchesApi from './matches';
 // export { turfsService } from './turfsService';
 // export { userService } from './userService';

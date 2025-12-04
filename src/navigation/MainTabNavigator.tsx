@@ -16,13 +16,11 @@ import { useTheme } from '../theme';
 import { Platform } from 'react-native';
 
 // Import stack navigators
+import { HomeStack } from './HomeStack';
 import { MatchesStack } from './MatchesStack';
 import { TurfsStack } from './TurfsStack';
 import { LearnStack } from './LearnStack';
 import { ProfileStack } from './ProfileStack';
-
-// Placeholder for Home stack (will be created similar to others)
-const HomeStack = () => null;
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 

@@ -1,7 +1,7 @@
 /**
  * Learn Stack Navigator
  * 
- * Handles learning/tutorial screens: LearnHome, Tutorial, CricketRules
+ * Handles learning/tutorial screens: LearnHome, LessonDetail, CricketRules
  */
 
 import React from 'react';
@@ -9,9 +9,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { LearnStackParamList } from './types';
 import { useTheme } from '../theme';
 
-// Import screens (placeholders for now - will be created in next phase)
-// import LearnHomeScreen from '../screens/learn/LearnHomeScreen';
-// import TutorialScreen from '../screens/learn/TutorialScreen';
+// Import screens
+import LearnHomeScreen from '../screens/learn/LearnHomeScreen';
+import LessonDetailScreen from '../screens/learn/LessonDetailScreen';
 // import CricketRulesScreen from '../screens/learn/CricketRulesScreen';
 
 const Stack = createNativeStackNavigator<LearnStackParamList>();
@@ -26,25 +26,23 @@ export const LearnStack: React.FC = () => {
 
     return (
         <Stack.Navigator
+            initialRouteName="LearnHome"
             screenOptions={{
-                headerStyle: {
-                    backgroundColor: theme.colors.primary,
-                },
-                headerTintColor: theme.colors.white,
-                headerTitleStyle: {
-                    fontWeight: '600',
+                headerShown: false, // Using custom headers in screens
+                contentStyle: {
+                    backgroundColor: theme.colors.bgSoft,
                 },
             }}
         >
             <Stack.Screen
                 name="LearnHome"
-                component={PlaceholderScreen}
+                component={LearnHomeScreen}
                 options={{ title: 'Learn Cricket' }}
             />
             <Stack.Screen
-                name="Tutorial"
-                component={PlaceholderScreen}
-                options={{ title: 'Tutorial' }}
+                name="LessonDetail"
+                component={LessonDetailScreen}
+                options={{ title: 'Lesson' }}
             />
             <Stack.Screen
                 name="CricketRules"

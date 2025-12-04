@@ -1,11 +1,13 @@
 /**
- * Layout Components Module
- *
- * Placeholder for layout components (headers, containers, wrappers, etc.)
- * Components will be added in the next development phase.
+ * Layout Components Module Exports
+ * 
+ * Central export point for all layout components.
+ * Import components from here for clean, organized imports.
+ * 
+ * @example
+ * import { ScreenContainer, HeaderBar, Spacer } from '../components/layout';
  */
 
-// Export layout components here
-// export { Header } from './Header';
-// export { Container } from './Container';
-// export { Screen } from './Screen';
+export { ScreenContainer } from './ScreenContainer';
+export { HeaderBar } from './HeaderBar';
+export { Spacer } from './Spacer';

@@ -9,12 +9,13 @@ import { NavigatorScreenParams } from '@react-navigation/native';
 
 /**
  * Auth Stack Parameter List
- * Screens: Login, Signup, ForgotPassword
+ * Screens: Splash, Login, OtpVerify, Onboarding
  */
 export type AuthStackParamList = {
+    Splash: undefined;
     Login: undefined;
-    Signup: undefined;
-    ForgotPassword: undefined;
+    OtpVerify: { phoneNumber: string };
+    Onboarding: undefined;
 };
 
 /**
@@ -38,12 +39,19 @@ export type MatchesStackParamList = {
 
 /**
  * Turfs Stack Parameter List
- * Screens: TurfsList, TurfDetails, BookTurf
+ * Screens: TurfsList, TurfDetails, BookTurf, BookingConfirmation
  */
 export type TurfsStackParamList = {
     TurfsList: undefined;
     TurfDetails: { turfId: string };
     BookTurf: { turfId: string };
+    BookingConfirmation: {
+        bookingId: string;
+        turfName: string;
+        date: string;
+        slot: string;
+        price: number;
+    };
 };
 
 /**
@@ -53,7 +61,13 @@ export type TurfsStackParamList = {
 export type ScoringStackParamList = {
     ScoringHome: undefined;
     LiveScoring: { matchId: string };
-    ScoreHistory: undefined;
+    ScoreHistory: {
+        matchId: string;
+        teamName: string;
+        runs: number;
+        wickets: number;
+        overs: number;
+    };
 };
 
 /**
@@ -62,7 +76,7 @@ export type ScoringStackParamList = {
  */
 export type LearnStackParamList = {
     LearnHome: undefined;
-    Tutorial: { tutorialId: string };
+    LessonDetail: { lessonId: string };
     CricketRules: undefined;
 };
 

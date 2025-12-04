@@ -1,11 +1,17 @@
 /**
- * UI Components Module
- *
- * Placeholder for reusable UI components (buttons, inputs, cards, etc.)
- * Components will be added in the next development phase.
+ * UI Components Module Exports
+ * 
+ * Central export point for all reusable UI components.
+ * Import components from here for clean, organized imports.
+ * 
+ * @example
+ * import { PrimaryButton, Card, InputField } from '../components/ui';
  */
 
-// Export UI components here
-// export { Button } from './Button';
-// export { Input } from './Input';
-// export { Card } from './Card';
+export { PrimaryButton } from './PrimaryButton';
+export { SecondaryButton } from './SecondaryButton';
+export { InputField } from './InputField';
+export { Card } from './Card';
+export { Loader } from './Loader';
+export { Tag } from './Tag';
+export { SectionHeader } from './SectionHeader';

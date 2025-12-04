@@ -1,7 +1,7 @@
 /**
  * Turfs Stack Navigator
  * 
- * Handles turf booking screens: TurfsList, TurfDetails, BookTurf
+ * Handles turf booking screens
  */
 
 import React from 'react';
@@ -9,47 +9,46 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { TurfsStackParamList } from './types';
 import { useTheme } from '../theme';
 
-// Import screens (placeholders for now - will be created in next phase)
-// import TurfsListScreen from '../screens/turfs/TurfsListScreen';
-// import TurfDetailsScreen from '../screens/turfs/TurfDetailsScreen';
-// import BookTurfScreen from '../screens/turfs/BookTurfScreen';
+// Import turf screens
+import TurfListScreen from '../screens/turfs/TurfListScreen';
+import TurfDetailsScreen from '../screens/turfs/TurfDetailsScreen';
+import SlotBookingScreen from '../screens/turfs/SlotBookingScreen';
+import BookingConfirmationScreen from '../screens/turfs/BookingConfirmationScreen';
 
 const Stack = createNativeStackNavigator<TurfsStackParamList>();
-
-/**
- * Placeholder screens - to be replaced with actual screens
- */
-const PlaceholderScreen = () => null;
 
 export const TurfsStack: React.FC = () => {
     const theme = useTheme();
 
     return (
         <Stack.Navigator
+            initialRouteName="TurfsList"
             screenOptions={{
-                headerStyle: {
-                    backgroundColor: theme.colors.primary,
-                },
-                headerTintColor: theme.colors.white,
-                headerTitleStyle: {
-                    fontWeight: '600',
+                headerShown: false, // Hide headers (using custom HeaderBar in screens)
+                contentStyle: {
+                    backgroundColor: theme.colors.bgSoft,
                 },
             }}
         >
             <Stack.Screen
                 name="TurfsList"
-                component={PlaceholderScreen}
+                component={TurfListScreen}
                 options={{ title: 'Turfs' }}
             />
             <Stack.Screen
                 name="TurfDetails"
-                component={PlaceholderScreen}
+                component={TurfDetailsScreen}
                 options={{ title: 'Turf Details' }}
             />
             <Stack.Screen
                 name="BookTurf"
-                component={PlaceholderScreen}
-                options={{ title: 'Book Turf' }}
+                component={SlotBookingScreen}
+                options={{ title: 'Book Slot' }}
+            />
+            <Stack.Screen
+                name="BookingConfirmation"
+                component={BookingConfirmationScreen}
+                options={{ title: 'Booking Confirmed' }}
             />
         </Stack.Navigator>
     );

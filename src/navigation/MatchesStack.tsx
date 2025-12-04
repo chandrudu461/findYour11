@@ -9,48 +9,42 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { MatchesStackParamList } from './types';
 import { useTheme } from '../theme';
 
-// Import screens (placeholders for now - will be created in next phase)
-// import MatchesListScreen from '../screens/matches/MatchesListScreen';
-// import MatchDetailsScreen from '../screens/matches/MatchDetailsScreen';
-// import CreateMatchScreen from '../screens/matches/CreateMatchScreen';
+// Import match screens
+import MatchExploreScreen from '../screens/matches/MatchExploreScreen';
+import MatchDetailsScreen from '../screens/matches/MatchDetailsScreen';
+import CreateMatchScreen from '../screens/matches/CreateMatchScreen';
 
 const Stack = createNativeStackNavigator<MatchesStackParamList>();
-
-/**
- * Placeholder screens - to be replaced with actual screens
- */
-const PlaceholderScreen = () => null;
 
 export const MatchesStack: React.FC = () => {
     const theme = useTheme();
 
     return (
         <Stack.Navigator
+            initialRouteName="MatchesList"
             screenOptions={{
-                headerStyle: {
-                    backgroundColor: theme.colors.primary,
-                },
-                headerTintColor: theme.colors.white,
-                headerTitleStyle: {
-                    fontWeight: '600',
+                headerShown: false, // Hide headers (using custom HeaderBar in screens)
+                contentStyle: {
+                    backgroundColor: theme.colors.bgSoft,
                 },
             }}
         >
             <Stack.Screen
                 name="MatchesList"
-                component={PlaceholderScreen}
+                component={MatchExploreScreen}
                 options={{ title: 'Matches' }}
             />
             <Stack.Screen
                 name="MatchDetails"
-                component={PlaceholderScreen}
+                component={MatchDetailsScreen}
                 options={{ title: 'Match Details' }}
             />
             <Stack.Screen
                 name="CreateMatch"
-                component={PlaceholderScreen}
+                component={CreateMatchScreen}
                 options={{ title: 'Create Match' }}
             />
         </Stack.Navigator>
     );
 };
+
