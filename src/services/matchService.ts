@@ -1,55 +1,57 @@
 /**
  * Match Service
  * 
- * Placeholder API functions for match-related operations.
- * In a real app, these would call backend APIs.
- * 
- * All functions simulate network delay and return mock data.
+ * API functions for match-related operations using backend endpoints.
  */
+
+import { apiRequest } from './authService';
 
 /**
  * Match type definition
  */
 export interface Match {
-    id: string;
-    title: string; // Added title property
-    name?: string; // Optional for backward compatibility
-    date: string;
-    time: string;
-    turfId?: string;
-    turfName?: string;
-    turfLocation?: string;
-    location?: string;
-    matchType?: 'Casual' | 'Tournament';
-    price?: number;
-    overs: number;
-    playersPerTeam: number;
-    spots?: number;
-    spotsFilled?: number;
-    organizer?: string;
-    teamA?: {
-        players: string[];
-        captain?: string;
-    };
-    teamB?: {
-        players: string[];
-        captain?: string;
-    };
-    status: 'Open' | 'Full' | 'Completed' | 'Cancelled';
-    createdBy?: string;
+    match_id: string; // Backend
+    id?: string; // Frontend
+    title?: string; // Frontend derived
+    name?: string; // Frontend derived
+
+    turf_id?: string; // Backend
+    turfId?: string; // Frontend
+    turf_name?: string; // Backend
+    turfName?: string; // Frontend
+    location?: string; // Backend (location column from join)
+    turfLocation?: string; // Frontend
+
+    match_date: string; // Backend
+    date?: string;
+    match_time: string; // Backend
+    time?: string;
+
+    created_by?: number;
+    format: string; // box_cricket, gully, etc.
+    matchType?: 'Casual' | 'Tournament'; // Frontend
+
+    players_joined?: number;
+    playersPerTeam?: number;
+    overs?: number;
+    status: 'upcoming' | 'open' | 'live' | 'completed' | 'cancelled' | 'Full' | 'Open';
+
+    team_a?: any[];
+    team_b?: any[];
+    teamA?: any;
+    teamB?: any;
 }
 
 /**
  * Match creation data
  */
 export interface CreateMatchData {
-    name: string;
-    date: string;
-    time: string;
+    name?: string;
     turfId: string;
-    matchType: 'Casual' | 'Tournament';
-    overs: number;
-    playersPerTeam: number;
+    userId: number;
+    date: string; // YYYY-MM-DD
+    time: string; // HH:MM:SS
+    format: string; // 'box_cricket' | 'gully'
 }
 
 /**
@@ -57,192 +59,135 @@ export interface CreateMatchData {
  */
 export interface MatchFilters {
     date?: string;
-    matchType?: 'Casual' | 'Tournament';
-    location?: string;
+    city?: string;
     status?: string;
+    matchType?: 'Casual' | 'Tournament';
 }
 
 /**
  * Create a new match
- * @param matchData - Match creation data
- * @returns Promise with created match
  */
 export const createMatch = async (matchData: CreateMatchData): Promise<Match> => {
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    const result = await apiRequest<any>(
+        '/matches',
+        'POST',
+        {
+            turf_id: parseInt(matchData.turfId),
+            created_by: matchData.userId,
+            match_date: matchData.date,
+            match_time: matchData.time,
+            format: matchData.format || 'box_cricket'
+        },
+        true // Auth required
+    );
 
-    // Mock API response
-    const newMatch: Match = {
-        id: `match_${Date.now()}`,
-        title: matchData.name,
-        name: matchData.name,
-        date: matchData.date,
-        time: matchData.time,
-        turfId: matchData.turfId,
-        turfName: 'Green Valley Cricket Ground', // Mock turf name
-        turfLocation: 'Bangalore, Karnataka',
-        matchType: matchData.matchType,
-        overs: matchData.overs,
-        playersPerTeam: matchData.playersPerTeam,
-        teamA: { players: [] },
-        teamB: { players: [] },
-        status: 'Open',
-        createdBy: 'current_user', // Mock current user
+    // result contains match_id, status, message
+    return {
+        match_id: result.match_id,
+        id: result.match_id,
+        status: result.status,
+        turf_id: matchData.turfId,
+        match_date: matchData.date,
+        match_time: matchData.time,
+        format: matchData.format
     };
-
-    console.log('[matchService] Match created:', newMatch);
-    return newMatch;
 };
 
 /**
  * Get list of matches with optional filters
- * @param filters - Optional filters
- * @returns Promise with array of matches
  */
 export const getMatches = async (filters?: MatchFilters): Promise<Match[]> => {
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    let endpoint = '/matches';
+    const params = new URLSearchParams();
 
-    // Mock matches data
-    const mockMatches: Match[] = [
-        {
-            id: '1',
-            title: 'Weekend Cricket Match',
-            name: 'Weekend Cricket Match',
-            date: '2025-12-10',
-            time: '10:00 AM',
-            turfId: 'turf_1',
-            turfName: 'Green Valley Cricket Ground',
-            turfLocation: 'Bangalore, Karnataka',
-            matchType: 'Casual',
-            overs: 20,
-            playersPerTeam: 11,
-            teamA: { players: ['Player 1', 'Player 2'], captain: 'Player 1' },
-            teamB: { players: ['Player 3'], captain: 'Player 3' },
-            status: 'Open',
-            createdBy: 'user_1',
-        },
-        {
-            id: '2',
-            title: 'Friday Evening Match',
-            name: 'Friday Evening Match',
-            date: '2025-12-08',
-            time: '6:00 PM',
-            turfId: 'turf_2',
-            turfName: 'Champions Cricket Arena',
-            turfLocation: 'Mumbai, Maharashtra',
-            matchType: 'Tournament',
-            overs: 50,
-            playersPerTeam: 11,
-            teamA: { players: Array(11).fill('Player') },
-            teamB: { players: Array(11).fill('Player') },
-            status: 'Full',
-            createdBy: 'user_2',
-        },
-    ];
+    if (filters?.date) params.append('date', filters.date);
+    if (filters?.city) params.append('city', filters.city);
+    if (filters?.status) params.append('status', filters.status);
 
-    console.log('[matchService] Fetched matches with filters:', filters);
-    return mockMatches;
+    if (params.toString()) {
+        endpoint += `?${params.toString()}`;
+    }
+
+    const matches = await apiRequest<Match[]>(endpoint, 'GET');
+
+    return matches.map(m => mapMatchToFrontend(m));
 };
 
 /**
  * Get match details by ID
- * @param matchId - Match ID
- * @returns Promise with match details
  */
 export const getMatchDetails = async (matchId: string): Promise<Match> => {
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    // Mock match details
-    const mockMatch: Match = {
-        id: matchId,
-        title: 'Weekend Cricket Match',
-        name: 'Weekend Cricket Match',
-        date: '2025-12-10',
-        time: '10:00 AM',
-        turfId: 'turf_1',
-        turfName: 'Green Valley Cricket Ground',
-        turfLocation: 'Bangalore, Karnataka',
-        matchType: 'Casual',
-        overs: 20,
-        playersPerTeam: 11,
-        teamA: {
-            players: ['Virat Kohli', 'Rohit Sharma', 'KL Rahul'],
-            captain: 'Virat Kohli',
-        },
-        teamB: {
-            players: ['MS Dhoni', 'Hardik Pandya'],
-            captain: 'MS Dhoni',
-        },
-        status: 'Open',
-        createdBy: 'user_1',
-    };
-
-    console.log('[matchService] Fetched match details:', matchId);
-    return mockMatch;
+    const match = await apiRequest<Match>(`/matches/${matchId}`, 'GET');
+    return mapMatchToFrontend(match);
 };
 
 /**
- * Join a team in a match
- * @param matchId - Match ID
- * @param team - Team to join ('A' or 'B')
- * @returns Promise with updated match
+ * Helper to join a team
  */
-export const joinTeam = async (matchId: string, team: 'A' | 'B'): Promise<Match> => {
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+export const joinTeam = async (matchId: string, team: 'A' | 'B', userId: number): Promise<Match> => {
+    await apiRequest<any>(
+        `/matches/${matchId}/join`,
+        'POST',
+        {
+            user_id: userId,
+            team: team
+        },
+        true
+    );
 
-    console.log(`[matchService] Joined Team ${team} in match:`, matchId);
-
-    // Return  mock updated match
+    // Refresh match details
     return await getMatchDetails(matchId);
 };
 
 /**
- * Leave a team in a match
- * @param matchId - Match ID
- * @returns Promise with updated match
+ * Placeholder for leaving team (backend not implemented yet)
  */
 export const leaveTeam = async (matchId: string): Promise<Match> => {
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    console.log('[matchService] Left team in match:', matchId);
-
-    // Return mock updated match
     return await getMatchDetails(matchId);
 };
 
 /**
- * Update match details
- * @param matchId - Match ID
- * @param data - Updated match data
- * @returns Promise with updated match
+ * Placeholder for update match
  */
-export const updateMatch = async (
-    matchId: string,
-    data: Partial<CreateMatchData>
-): Promise<Match> => {
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 1200));
-
-    console.log('[matchService] Updated match:', matchId, data);
-
-    // Return mock updated match
+export const updateMatch = async (matchId: string, data: any): Promise<Match> => {
     return await getMatchDetails(matchId);
 };
 
 /**
- * Delete a match
- * @param matchId - Match ID
- * @returns Promise with success status
+ * Placeholder for delete match
  */
 export const deleteMatch = async (matchId: string): Promise<{ success: boolean }> => {
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    console.log('[matchService] Deleted match:', matchId);
-
     return { success: true };
 };
+
+// Helper to map backend fields to frontend expected interfaces
+function mapMatchToFrontend(m: Match): Match {
+    return {
+        ...m,
+        id: m.match_id,
+        title: `${m.format} Match @ ${m.turf_name}`,
+        name: `${m.format} Match`,
+
+        turfId: m.turf_id,
+        turfName: m.turf_name,
+        turfLocation: m.location || m.turfLocation, // Handle possible field names
+
+        date: m.match_date,
+        time: m.match_time,
+
+        matchType: m.format === 'box_cricket' ? 'Casual' : 'Tournament',
+        overs: m.format === 't20' ? 20 : 10,
+        playersPerTeam: 11, // Estimate
+
+        // Map players
+        teamA: {
+            players: m.team_a?.map((p: any) => p.user_name || 'Unknown') || []
+        },
+        teamB: {
+            players: m.team_b?.map((p: any) => p.user_name || 'Unknown') || []
+        },
+
+        // Map status
+        status: m.status === 'upcoming' ? 'Open' : (m.status === 'live' ? 'Full' : 'Open'),
+    };
+}

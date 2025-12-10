@@ -63,7 +63,7 @@ export default function MatchExploreScreen() {
      * Filter matches by search query
      */
     const filteredMatches = matches.filter((match) =>
-        match.name.toLowerCase().includes(searchQuery.toLowerCase())
+        (match.name || '').toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     /**
@@ -276,7 +276,7 @@ export default function MatchExploreScreen() {
                         filteredMatches.map((match) => (
                             <Card
                                 key={match.id}
-                                onPress={() => handleMatchPress(match.id)}
+                                onPress={() => handleMatchPress(match.id!)}
                                 style={{ marginBottom: theme.spacing.md }}
                             >
                                 <View style={styles.matchCard}>
@@ -316,7 +316,7 @@ export default function MatchExploreScreen() {
                                         <Spacer size="sm" />
 
                                         <View style={styles.matchTags}>
-                                            <Tag label={match.matchType} variant="primary" />
+                                            <Tag label={match.matchType || 'Match'} variant="primary" />
                                             <Tag
                                                 label={`${match.overs} Overs`}
                                                 variant="info"

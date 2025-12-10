@@ -43,12 +43,12 @@ const COLORS = {
 
 export default function LoginScreen() {
     const navigation = useNavigation<LoginScreenNavigationProp>();
-    const { login, isLoading, isAuthenticated } = useAuth();
+    const { login, loginWithPhone, isLoading, isAuthenticated } = useAuth();
     const { width } = Dimensions.get('window');
 
-    const [email, setEmail] = useState('');
+    const [identifier, setIdentifier] = useState(''); // Email or Phone
     const [password, setPassword] = useState('');
-    const [errors, setErrors] = useState<{ email?: string; password?: string; form?: string }>({});
+    const [errors, setErrors] = useState<{ identifier?: string; password?: string; form?: string }>({});
 
     // Fade in animation for bottom section
     const bottomFade = useRef(new Animated.Value(0)).current;
@@ -89,11 +89,17 @@ export default function LoginScreen() {
      */
     const validateForm = (): boolean => {
         const newErrors: typeof errors = {};
+        const trimmedIdentifier = identifier.trim();
 
-        if (!email.trim()) {
-            newErrors.email = 'Email is required';
-        } else if (!email.includes('@')) {
-            newErrors.email = 'Please enter a valid email';
+        if (!trimmedIdentifier) {
+            newErrors.identifier = 'Email or Phone is required';
+        } else {
+            const isEmail = trimmedIdentifier.includes('@');
+            const isPhone = /^\d{10,15}$/.test(trimmedIdentifier);
+
+            if (!isEmail && !isPhone) {
+                newErrors.identifier = 'Enter a valid email or phone number';
+            }
         }
 
         if (!password.trim()) {
@@ -114,7 +120,15 @@ export default function LoginScreen() {
 
         if (!validateForm()) return;
 
-        const result = await login(email, password);
+        const trimmedIdentifier = identifier.trim();
+        const isPhone = /^\d+$/.test(trimmedIdentifier);
+
+        let result;
+        if (isPhone) {
+            result = await loginWithPhone(trimmedIdentifier, password);
+        } else {
+            result = await login(trimmedIdentifier, password);
+        }
 
         if (!result.success) {
             setErrors({ form: result.message || 'Login failed. Please check your credentials.' });
@@ -161,19 +175,19 @@ export default function LoginScreen() {
                             </View>
                         )}
 
-                        {/* Email Input */}
+                        {/* Email/Phone Input */}
                         <CinematicInput
-                            label="Email Address"
-                            icon="email"
-                            value={email}
+                            label="Email or Phone"
+                            icon="email" // Use abstract user icon ideally, keeping email for now
+                            value={identifier}
                             onChangeText={(text) => {
-                                setEmail(text);
-                                setErrors(prev => ({ ...prev, email: '', form: '' }));
+                                setIdentifier(text);
+                                setErrors(prev => ({ ...prev, identifier: '', form: '' }));
                             }}
                             keyboardType="email-address"
                             autoCapitalize="none"
                             autoComplete="email"
-                            error={errors.email}
+                            error={errors.identifier}
                             animationDelay={800}
                         />
 

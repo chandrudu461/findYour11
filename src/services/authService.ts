@@ -2,10 +2,11 @@
  * Authentication Service
  * 
  * Handles all authentication-related API calls:
- * - Login with email/password
+ * - Login with email/password or phone/password
  * - Register new user
  * - Get user profile
  * - Refresh token
+ * - Logout
  * 
  * API Base URL: https://3ogqoj3opa.execute-api.ap-south-1.amazonaws.com
  */
@@ -17,11 +18,14 @@ const API_BASE_URL = 'https://3ogqoj3opa.execute-api.ap-south-1.amazonaws.com';
  * User profile interface
  */
 export interface UserProfile {
+    user_id?: number;
     id?: string;
-    name: string;
+    name?: string;
+    full_name?: string;
     email: string;
     phone?: string;
     role?: string;
+    skill_level?: string;
     avatarUrl?: string;
     createdAt?: string;
 }
@@ -30,7 +34,8 @@ export interface UserProfile {
  * Login request payload
  */
 export interface LoginRequest {
-    email: string;
+    email?: string;
+    phone?: string;
     password: string;
 }
 
@@ -59,8 +64,19 @@ export interface RegisterRequest {
 export interface RegisterResponse {
     success: boolean;
     message: string;
-    user?: UserProfile;
-    token?: string;
+    data?: {
+        user_id: number;
+        message: string;
+    };
+}
+
+/**
+ * API Response wrapper
+ */
+interface ApiResponse<T> {
+    success: boolean;
+    data?: T;
+    message?: string;
 }
 
 /**
@@ -72,8 +88,7 @@ export interface ApiError {
 }
 
 /**
- * Token storage - In-memory for now
- * In production, use SecureStore (Expo) or AsyncStorage
+ * Token storage - In-memory (AsyncStorage handled by AuthContext)
  */
 let authToken: string | null = null;
 
@@ -101,7 +116,7 @@ export const clearAuthToken = (): void => {
 /**
  * Make authenticated API request
  */
-const apiRequest = async <T>(
+export const apiRequest = async <T>(
     endpoint: string,
     method: 'GET' | 'POST' | 'PUT' | 'DELETE',
     body?: object,
@@ -126,7 +141,6 @@ const apiRequest = async <T>(
 
     try {
         const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-
         const data = await response.json();
 
         if (!response.ok) {
@@ -134,6 +148,13 @@ const apiRequest = async <T>(
                 message: data.message || 'Request failed',
                 statusCode: response.status,
             } as ApiError;
+        }
+
+        // Handle wrapped responses (all backend responses are wrapped in success/data/message)
+        // If T is requested as is, return data.data if it exists, otherwise return data
+        // This is a bit tricky with Typescript generics, so we'll trust the caller handles the structure or we unwrap here if it matches standard response
+        if (data.success !== undefined && data.data !== undefined) {
+            return data.data as T;
         }
 
         return data as T;
@@ -151,82 +172,109 @@ const apiRequest = async <T>(
 
 /**
  * Login with email and password
- * 
- * @param email - User's email address
- * @param password - User's password
- * @returns Promise with token and user data
  */
 export const login = async (email: string, password: string): Promise<LoginResponse> => {
-    const response = await apiRequest<LoginResponse>(
-        '/auth/login',
-        'POST',
-        { email, password }
-    );
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+    });
 
-    // Store token if received
-    if (response.token) {
-        setAuthToken(response.token);
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+        throw { message: data.message || 'Login failed' } as ApiError;
     }
 
-    return response;
+    // Backend returns success: true, data: { token, user }
+    const { token, user } = data.data;
+
+    if (token) {
+        setAuthToken(token);
+    }
+
+    return { token, user };
+};
+
+/**
+ * Login with phone and password
+ */
+export const loginWithPhone = async (phone: string, password: string): Promise<LoginResponse> => {
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, password })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+        throw { message: data.message || 'Login failed' } as ApiError;
+    }
+
+    const { token, user } = data.data;
+
+    if (token) {
+        setAuthToken(token);
+    }
+
+    return { token, user };
 };
 
 /**
  * Register a new user
- * 
- * @param data - Registration data (name, email, phone, password)
- * @returns Promise with success status and message
  */
 export const register = async (data: RegisterRequest): Promise<RegisterResponse> => {
-    const response = await apiRequest<RegisterResponse>(
-        '/users/register',
-        'POST',
-        data
-    );
+    const response = await fetch(`${API_BASE_URL}/users/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    });
 
-    // Store token if received
-    if (response.token) {
-        setAuthToken(response.token);
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+        return {
+            success: false,
+            message: result.message || 'Registration failed'
+        };
     }
 
-    return response;
+    return {
+        success: true,
+        message: result.message || 'Registration successful',
+        data: result.data
+    };
 };
 
 /**
- * Get current user's profile
- * Requires authentication
- * 
- * @returns Promise with user profile data
+ * Get current user's profile (requires auth)
  */
 export const getProfile = async (): Promise<UserProfile> => {
     return apiRequest<UserProfile>(
         '/auth/profile',
         'GET',
         undefined,
-        true // requires auth
+        true
     );
 };
 
 /**
- * Refresh the authentication token
- * Requires authentication
- * 
- * @returns Promise with new token
+ * Refresh the authentication token (requires auth)
  */
 export const refreshToken = async (): Promise<{ token: string }> => {
-    const response = await apiRequest<{ token: string }>(
+    const data = await apiRequest<{ token: string }>(
         '/auth/refresh',
         'POST',
         undefined,
-        true // requires auth
+        true
     );
 
-    // Update stored token
-    if (response.token) {
-        setAuthToken(response.token);
+    if (data.token) {
+        setAuthToken(data.token);
     }
 
-    return response;
+    return data;
 };
 
 /**

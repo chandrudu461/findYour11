@@ -13,6 +13,7 @@ import { ScreenContainer, Spacer, HeaderBar } from '../../components/layout';
 import { Card, PrimaryButton, InputField, SectionHeader } from '../../components/ui';
 import { useTheme } from '../../theme';
 import { getAvailableSlots, createBooking, TimeSlot } from '../../services';
+import { useAuth } from '../../context';
 
 type SlotBookingScreenNavigationProp = NativeStackNavigationProp<TurfsStackParamList, 'BookTurf'>;
 type SlotBookingScreenRouteProp = RouteProp<TurfsStackParamList, 'BookTurf'>;
@@ -21,6 +22,7 @@ export default function SlotBookingScreen() {
     const navigation = useNavigation<SlotBookingScreenNavigationProp>();
     const route = useRoute<SlotBookingScreenRouteProp>();
     const theme = useTheme();
+    const { user } = useAuth();
 
     const { turfId } = route.params;
 
@@ -31,7 +33,7 @@ export default function SlotBookingScreen() {
     const [booking, setBooking] = useState(false);
 
     useEffect(() => {
-        if (date) {
+        if (date && date.length === 10) { // Simple validation YYYY-MM-DD
             fetchSlots();
         }
     }, [date]);
@@ -43,6 +45,7 @@ export default function SlotBookingScreen() {
             setSlots(slotsData);
         } catch (error) {
             console.error('Failed to fetch slots:', error);
+            Alert.alert('Error', 'Failed to fetch slots. Please ensure format YYYY-MM-DD');
         } finally {
             setLoading(false);
         }
@@ -58,21 +61,34 @@ export default function SlotBookingScreen() {
             return;
         }
 
+        if (!user || (!user.user_id && !user.id)) {
+            Alert.alert('Error', 'You must be logged in to book a slot');
+            return;
+        }
+
+        const userId = user.user_id || (user.id ? parseInt(user.id) : 0);
+        if (!userId) {
+            Alert.alert('Error', 'Invalid user session');
+            return;
+        }
+
         try {
             setBooking(true);
             const bookingData = await createBooking({
                 turfId,
                 date,
-                slotId: selectedSlot.id,
+                slotId: selectedSlot.id || selectedSlot.slot_id,
+                userId: userId,
+                amount: selectedSlot.price || 2000,
             });
 
             // Navigate to confirmation
             navigation.replace('BookingConfirmation', {
-                bookingId: bookingData.id,
-                turfName: bookingData.turfName,
+                bookingId: bookingData.id || bookingData.booking_id,
+                turfName: bookingData.turfName || 'Turf',
                 date: bookingData.date,
-                slot: bookingData.slot.time,
-                price: bookingData.totalPrice,
+                slot: selectedSlot.time || `${selectedSlot.start_time}`,
+                price: bookingData.totalPrice || bookingData.total_amount,
             });
         } catch (error) {
             Alert.alert('Error', 'Failed to create booking');
@@ -111,7 +127,7 @@ export default function SlotBookingScreen() {
                                 </Text>
                             ) : slots.length === 0 ? (
                                 <Text style={{ textAlign: 'center', color: theme.colors.textLight }}>
-                                    No slots available for this date
+                                    {date.length === 10 ? 'No slots available for this date' : 'Enter a valid date'}
                                 </Text>
                             ) : (
                                 <View style={styles.slotsGrid}>
@@ -154,7 +170,7 @@ export default function SlotBookingScreen() {
                                                         fontSize: 16,
                                                     }}
                                                 >
-                                                    ₹{slot.price}
+                                                    ₹{slot.price || 2000}
                                                 </Text>
                                                 {!slot.available && (
                                                     <Text style={{ color: theme.colors.error, fontSize: 12, marginTop: 4 }}>
@@ -198,7 +214,7 @@ export default function SlotBookingScreen() {
                                             fontSize: 18,
                                         }}
                                     >
-                                        ₹{selectedSlot.price}
+                                        ₹{selectedSlot.price || 2000}
                                     </Text>
                                 </View>
                             </Card>
@@ -231,4 +247,6 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
     },
+    // The previous implementation used a grid but React Native View doesn't have grid props,
+    // assuming valid Flexbox layout or inherited container styles
 });

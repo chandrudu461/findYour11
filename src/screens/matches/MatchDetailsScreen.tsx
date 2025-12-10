@@ -21,6 +21,7 @@ import { ScreenContainer, Spacer, HeaderBar } from '../../components/layout';
 import { Card, PrimaryButton, SecondaryButton, Tag, SectionHeader } from '../../components/ui';
 import { useTheme } from '../../theme';
 import { getMatchDetails, joinTeam, leaveTeam, Match } from '../../services';
+import { useAuth } from '../../context';
 
 type MatchDetailsScreenNavigationProp = NativeStackNavigationProp<MatchesStackParamList, 'MatchDetails'>;
 type MatchDetailsScreenRouteProp = RouteProp<MatchesStackParamList, 'MatchDetails'>;
@@ -29,13 +30,14 @@ export default function MatchDetailsScreen() {
     const navigation = useNavigation<MatchDetailsScreenNavigationProp>();
     const route = useRoute<MatchDetailsScreenRouteProp>();
     const theme = useTheme();
+    const { user } = useAuth(); // Get authenticated user
 
     const { matchId } = route.params;
 
     const [match, setMatch] = useState<Match | null>(null);
     const [loading, setLoading] = useState(true);
     const [joining, setJoining] = useState(false);
-    const [userTeam, setUserTeam] = useState<'A' | 'B' | null>(null); // Mock user team
+    const [userTeam, setUserTeam] = useState<'A' | 'B' | null>(null);
 
     /**
      * Fetch match details on mount
@@ -49,6 +51,15 @@ export default function MatchDetailsScreen() {
             setLoading(true);
             const matchData = await getMatchDetails(matchId);
             setMatch(matchData);
+
+            // Check if user is already in a team
+            if (user?.full_name) {
+                const inTeamA = matchData.teamA.players.includes(user.full_name);
+                const inTeamB = matchData.teamB.players.includes(user.full_name);
+                if (inTeamA) setUserTeam('A');
+                else if (inTeamB) setUserTeam('B');
+                else setUserTeam(null);
+            }
         } catch (error) {
             Alert.alert('Error', 'Failed to load match details');
         } finally {
@@ -61,10 +72,20 @@ export default function MatchDetailsScreen() {
      */
     const handleJoinTeam = async (team: 'A' | 'B') => {
         if (!match) return;
+        if (!user || (!user.user_id && !user.id)) {
+            Alert.alert('Error', 'You must be logged in to join a match');
+            return;
+        }
+
+        const userId = user.user_id || (user.id ? parseInt(user.id) : 0);
+        if (!userId) {
+            Alert.alert('Error', 'Invalid user ID');
+            return;
+        }
 
         try {
             setJoining(true);
-            const updatedMatch = await joinTeam(matchId, team);
+            const updatedMatch = await joinTeam(matchId, team, userId);
             setMatch(updatedMatch);
             setUserTeam(team);
             Alert.alert('Success', `You joined Team ${team}!`);
@@ -176,11 +197,11 @@ export default function MatchDetailsScreen() {
                     <Spacer size="md" />
 
                     {/* Team A */}
-                    <SectionHeader title="Team A" subtitle={`${match.teamA.players.length}/${match.playersPerTeam} Players`} />
+                    <SectionHeader title="Team A" subtitle={`${match.teamA.players.length}/${match.playersPerTeam || 11} Players`} />
                     <Spacer size="sm" />
                     <Card>
                         {match.teamA.players.length > 0 ? (
-                            match.teamA.players.map((player, index) => (
+                            match.teamA.players.map((player: string, index: number) => (
                                 <View key={index} style={styles.playerRow}>
                                     <Text style={{ color: theme.colors.textDark }}>
                                         {index + 1}. {player}
@@ -203,7 +224,7 @@ export default function MatchDetailsScreen() {
                                 loading={joining}
                                 disabled={joining}
                             />
-                        ) : match.teamA.players.length < match.playersPerTeam && !userTeam ? (
+                        ) : match.teamA.players.length < (match.playersPerTeam || 11) && !userTeam ? (
                             <PrimaryButton
                                 title="Join Team A"
                                 onPress={() => handleJoinTeam('A')}
@@ -216,11 +237,11 @@ export default function MatchDetailsScreen() {
                     <Spacer size="md" />
 
                     {/* Team B */}
-                    <SectionHeader title="Team B" subtitle={`${match.teamB.players.length}/${match.playersPerTeam} Players`} />
+                    <SectionHeader title="Team B" subtitle={`${match.teamB.players.length}/${match.playersPerTeam || 11} Players`} />
                     <Spacer size="sm" />
                     <Card>
                         {match.teamB.players.length > 0 ? (
-                            match.teamB.players.map((player, index) => (
+                            match.teamB.players.map((player: string, index: number) => (
                                 <View key={index} style={styles.playerRow}>
                                     <Text style={{ color: theme.colors.textDark }}>
                                         {index + 1}. {player}
@@ -243,7 +264,7 @@ export default function MatchDetailsScreen() {
                                 loading={joining}
                                 disabled={joining}
                             />
-                        ) : match.teamB.players.length < match.playersPerTeam && !userTeam ? (
+                        ) : match.teamB.players.length < (match.playersPerTeam || 11) && !userTeam ? (
                             <PrimaryButton
                                 title="Join Team B"
                                 onPress={() => handleJoinTeam('B')}

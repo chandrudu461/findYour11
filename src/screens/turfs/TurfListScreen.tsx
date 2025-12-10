@@ -41,8 +41,8 @@ export default function TurfListScreen() {
     };
 
     const filteredTurfs = turfs.filter((turf) =>
-        turf.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        turf.city.toLowerCase().includes(searchQuery.toLowerCase())
+        (turf.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (turf.city || '').toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     return (
@@ -110,7 +110,7 @@ export default function TurfListScreen() {
                         filteredTurfs.map((turf) => (
                             <TouchableOpacity
                                 key={turf.id}
-                                onPress={() => navigation.navigate('TurfDetails', { turfId: turf.id })}
+                                onPress={() => navigation.navigate('TurfDetails', { turfId: turf.id! })}
                             >
                                 <Card style={{ marginBottom: theme.spacing.md }}>
                                     {/* Turf Image Placeholder */}
@@ -166,14 +166,14 @@ export default function TurfListScreen() {
                                                 ⭐ {turf.rating}
                                             </Text>
                                         </View>
-                                        <Tag label={turf.surface} variant="info" />
+                                        <Tag label={turf.surface || 'Unknown'} variant="info" />
                                     </View>
 
                                     <Spacer size="sm" />
 
                                     {/* Amenities */}
                                     <View style={styles.amenities}>
-                                        {turf.amenities.slice(0, 3).map((amenity, index) => (
+                                        {(turf.amenities || []).slice(0, 3).map((amenity, index) => (
                                             <Tag
                                                 key={index}
                                                 label={amenity}

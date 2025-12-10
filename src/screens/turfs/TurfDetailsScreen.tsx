@@ -85,12 +85,12 @@ export default function TurfDetailsScreen() {
                             },
                         ]}
                     >
-                        {turf.name}
+                        {turf.name || 'Unnamed Turf'}
                     </Text>
 
                     <View style={styles.ratingRow}>
                         <Text style={{ color: theme.colors.textLight, fontSize: 16 }}>
-                            ⭐ {turf.rating} • 📍 {turf.location}, {turf.city}
+                            ⭐ {turf.rating || '-'} • 📍 {turf.location || ''}, {turf.city || ''}
                         </Text>
                     </View>
 
@@ -109,18 +109,18 @@ export default function TurfDetailsScreen() {
                                     fontWeight: '600',
                                 }}
                             >
-                                ₹{turf.price}/hr
+                                ₹{turf.price || 0}/hr
                             </Text>
                         </View>
                         <Spacer size="sm" />
                         <View style={styles.detailRow}>
                             <Text style={{ color: theme.colors.textLight }}>Surface</Text>
-                            <Tag label={turf.surface} variant="info" />
+                            <Tag label={turf.surface || 'Unknown'} variant="info" />
                         </View>
                         <Spacer size="sm" />
                         <View style={styles.detailRow}>
                             <Text style={{ color: theme.colors.textLight }}>Size</Text>
-                            <Text style={{ color: theme.colors.textDark }}>{turf.size}</Text>
+                            <Text style={{ color: theme.colors.textDark }}>{turf.size || 'N/A'}</Text>
                         </View>
                     </Card>
 
@@ -131,7 +131,7 @@ export default function TurfDetailsScreen() {
                     <Spacer size="sm" />
                     <Card>
                         <Text style={{ color: theme.colors.textDark, lineHeight: 22 }}>
-                            {turf.description}
+                            {turf.description || 'No description available.'}
                         </Text>
                     </Card>
 
@@ -142,7 +142,7 @@ export default function TurfDetailsScreen() {
                     <Spacer size="sm" />
                     <Card>
                         <View style={styles.amenitiesGrid}>
-                            {turf.amenities.map((amenity, index) => (
+                            {(turf.amenities || []).map((amenity, index) => (
                                 <View key={index} style={styles.amenityItem}>
                                     <Text style={{ fontSize: 20, marginBottom: 4 }}>✓</Text>
                                     <Text style={{ color: theme.colors.textDark }}>{amenity}</Text>
@@ -156,7 +156,7 @@ export default function TurfDetailsScreen() {
                     {/* Book Button */}
                     <PrimaryButton
                         title="Book Slot"
-                        onPress={() => navigation.navigate('BookTurf', { turfId: turf.id })}
+                        onPress={() => navigation.navigate('BookTurf', { turfId: turf.id! })}
                     />
 
                     <Spacer size="lg" />

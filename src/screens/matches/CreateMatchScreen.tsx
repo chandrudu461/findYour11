@@ -18,18 +18,20 @@ import { ScreenContainer, Spacer, HeaderBar } from '../../components/layout';
 import { InputField, PrimaryButton, SecondaryButton } from '../../components/ui';
 import { useTheme } from '../../theme';
 import { createMatch } from '../../services';
+import { useAuth } from '../../context';
 
 type CreateMatchScreenNavigationProp = NativeStackNavigationProp<MatchesStackParamList, 'CreateMatch'>;
 
 export default function CreateMatchScreen() {
     const navigation = useNavigation<CreateMatchScreenNavigationProp>();
     const theme = useTheme();
+    const { user } = useAuth();
 
     // Form state
     const [matchName, setMatchName] = useState('');
     const [date, setDate] = useState('');
     const [time, setTime] = useState('');
-    const [turfId, setTurfId] = useState('turf_1'); // Mock turf ID
+    const [turfId, setTurfId] = useState('1'); // Needs to be dynamic later
     const [matchType, setMatchType] = useState<'Casual' | 'Tournament'>('Casual');
     const [overs, setOvers] = useState('20');
     const [playersPerTeam, setPlayersPerTeam] = useState('11');
@@ -91,6 +93,17 @@ export default function CreateMatchScreen() {
             return;
         }
 
+        if (!user || (!user.user_id && !user.id)) {
+            Alert.alert('Error', 'You must be logged in to create a match');
+            return;
+        }
+
+        const userId = user.user_id || (user.id ? parseInt(user.id) : 0);
+        if (!userId) {
+            Alert.alert('Error', 'Invalid user session');
+            return;
+        }
+
         try {
             setLoading(true);
 
@@ -100,9 +113,8 @@ export default function CreateMatchScreen() {
                 date,
                 time,
                 turfId,
-                matchType,
-                overs: parseInt(overs),
-                playersPerTeam: parseInt(playersPerTeam),
+                userId: userId,
+                format: matchType === 'Casual' ? 'box_cricket' : 't20',
             });
 
             Alert.alert(
@@ -111,7 +123,7 @@ export default function CreateMatchScreen() {
                 [
                     {
                         text: 'View Details',
-                        onPress: () => navigation.replace('MatchDetails', { matchId: newMatch.id }),
+                        onPress: () => navigation.replace('MatchDetails', { matchId: newMatch.id || newMatch.match_id }),
                     },
                     {
                         text: 'OK',
@@ -119,8 +131,9 @@ export default function CreateMatchScreen() {
                     },
                 ]
             );
-        } catch (error) {
-            Alert.alert('Error', 'Failed to create match. Please try again.');
+        } catch (error: any) {
+            console.error(error);
+            Alert.alert('Error', 'Failed to create match. ' + (error.message || ''));
         } finally {
             setLoading(false);
         }
@@ -176,7 +189,7 @@ export default function CreateMatchScreen() {
                         label="Time"
                         value={time}
                         onChangeText={setTime}
-                        placeholder="HH:MM AM/PM (e.g., 10:00 AM)"
+                        placeholder="HH:MM:SS (e.g., 10:00:00)"
                         error={errors.time}
                     />
 
@@ -230,7 +243,7 @@ export default function CreateMatchScreen() {
 
                     {/* Overs */}
                     <InputField
-                        label="Number of Overs"
+                        label="Number of Overs (Mock)"
                         value={overs}
                         onChangeText={setOvers}
                         placeholder="e.g., 20"
@@ -242,7 +255,7 @@ export default function CreateMatchScreen() {
 
                     {/* Players Per Team */}
                     <InputField
-                        label="Players Per Team"
+                        label="Players Per Team (Mock)"
                         value={playersPerTeam}
                         onChangeText={setPlayersPerTeam}
                         placeholder="e.g., 11"

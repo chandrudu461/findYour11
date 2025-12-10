@@ -1,49 +1,64 @@
 /**
  * Turf Service
  * 
- * Placeholder API functions for turf booking operations.
- * In a real app, these would call backend APIs.
+ * API functions for turf operations using backend endpoints.
  */
+
+import { apiRequest } from './authService';
 
 /**
  * Turf type definition
  */
 export interface Turf {
-    id: string;
-    name: string;
+    turf_id: string; // Backend uses turf_id
+    id?: string; // Frontend compatibility
+    turf_name: string; // Backend uses turf_name
+    name?: string; // Frontend compatibility
     location: string;
     city: string;
-    price: number;
-    rating: number;
-    surface: string;
-    size: string;
-    amenities: string[];
-    description: string;
+    price_per_hour: number; // Backend uses price_per_hour
+    price?: number; // Frontend compatibility
+    rating?: number;
+    surface?: string;
+    size?: string;
+    amenities?: string[];
+    description?: string;
     imageUrl?: string;
+    is_active?: boolean;
 }
 
 /**
  * Time slot type
  */
 export interface TimeSlot {
-    id: string;
-    time: string;
-    available: boolean;
-    price: number;
+    slot_id: string; // Backend uses slot_id
+    id?: string; // Frontend compatibility
+    date: string;
+    start_time: string;
+    end_time: string;
+    is_booked: boolean | number;
+    available?: boolean; // Frontend compatibility
+    price?: number;
+    time?: string; // Frontend compatibility
 }
 
 /**
  * Booking type
  */
 export interface Booking {
-    id: string;
-    turfId: string;
-    turfName: string;
+    booking_id: string;
+    id?: string;
+    turf_id?: string;
+    turfId?: string;
+    turfName?: string;
     date: string;
-    slot: TimeSlot;
-    totalPrice: number;
-    status: 'Confirmed' | 'Pending' | 'Cancelled';
-    bookingDate: string;
+    slot_id: string;
+    slotId?: string;
+    total_amount: number;
+    totalPrice?: number;
+    status: 'pending' | 'confirmed' | 'cancelled';
+    booked_by: number;
+    created_at?: string;
 }
 
 /**
@@ -59,72 +74,50 @@ export interface TurfFilters {
  * Get list of turfs with optional filters
  */
 export const getTurfs = async (filters?: TurfFilters): Promise<Turf[]> => {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    let endpoint = '/turfs';
+    const params = new URLSearchParams();
 
-    const mockTurfs: Turf[] = [
-        {
-            id: 'turf_1',
-            name: 'Green Valley Cricket Ground',
-            location: 'Koramangala',
-            city: 'Bangalore',
-            price: 2500,
-            rating: 4.8,
-            surface: 'Natural Grass',
-            size: '90m x 60m',
-            amenities: ['Floodlights', 'Changing Rooms', 'Parking', 'Refreshments'],
-            description: 'Premium cricket ground with natural grass surface and modern facilities.',
-        },
-        {
-            id: 'turf_2',
-            name: 'Champions Cricket Arena',
-            location: 'Andheri West',
-            city: 'Mumbai',
-            price: 3000,
-            rating: 4.9,
-            surface: 'Artificial Turf',
-            size: '100m x 70m',
-            amenities: ['Floodlights', 'Changing Rooms', 'Parking', 'Cafe', 'Scoreboard'],
-            description: 'State-of-the-art cricket arena perfect for tournaments.',
-        },
-        {
-            id: 'turf_3',
-            name: 'City Sports Complex',
-            location: 'Hitech City',
-            city: 'Hyderabad',
-            price: 2000,
-            rating: 4.6,
-            surface: 'Hybrid Turf',
-            size: '85m x 65m',
-            amenities: ['Floodlights', 'Changing Rooms', 'Parking'],
-            description: 'Affordable cricket ground with hybrid turf surface.',
-        },
-    ];
+    if (filters?.city) {
+        params.append('city', filters.city);
+    }
 
-    console.log('[turfService] Fetched turfs with filters:', filters);
-    return mockTurfs;
+    if (params.toString()) {
+        endpoint += `?${params.toString()}`;
+    }
+
+    const turfs = await apiRequest<Turf[]>(endpoint, 'GET');
+
+    // Map backend fields to frontend interface if needed
+    return turfs.map(t => ({
+        ...t,
+        id: t.turf_id, // Map turf_id to id
+        name: t.turf_name, // Map turf_name to name
+        price: t.price_per_hour, // Map price_per_hour to price
+        // Add defaults for UI-only fields
+        rating: 4.5,
+        surface: 'Artificial Turf',
+        size: 'Standard',
+        amenities: ['Floodlights', 'Parking', 'Change Room'],
+    }));
 };
 
 /**
  * Get turf details by ID
  */
 export const getTurfDetails = async (turfId: string): Promise<Turf> => {
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    const turf = await apiRequest<Turf>(`/turfs/${turfId}`, 'GET');
 
-    const mockTurf: Turf = {
-        id: turfId,
-        name: 'Green Valley Cricket Ground',
-        location: 'Koramangala',
-        city: 'Bangalore',
-        price: 2500,
+    return {
+        ...turf,
+        id: turf.turf_id,
+        name: turf.turf_name,
+        price: turf.price_per_hour,
         rating: 4.8,
-        surface: 'Natural Grass',
-        size: '90m x 60m',
-        amenities: ['Floodlights', 'Changing Rooms', 'Parking', 'Refreshments', 'First Aid'],
-        description: 'Premium cricket ground with natural grass surface and modern facilities. Perfect for professional matches and training sessions.',
+        surface: 'Premium Grass',
+        size: 'Tournament Size',
+        amenities: ['Floodlights', 'Pavilion', 'Parking', 'Cafe'],
+        description: `Experience professional cricket at ${turf.turf_name}. Located in ${turf.city}, this ground offers premium facilities.`,
     };
-
-    console.log('[turfService] Fetched turf details:', turfId);
-    return mockTurf;
 };
 
 /**
@@ -134,21 +127,18 @@ export const getAvailableSlots = async (
     turfId: string,
     date: string
 ): Promise<TimeSlot[]> => {
-    await new Promise((resolve) => setTimeout(resolve, 600));
+    const slots = await apiRequest<TimeSlot[]>(
+        `/turfs/${turfId}/slots?date=${date}`,
+        'GET'
+    );
 
-    const mockSlots: TimeSlot[] = [
-        { id: 'slot_1', time: '06:00 AM - 08:00 AM', available: true, price: 2000 },
-        { id: 'slot_2', time: '08:00 AM - 10:00 AM', available: true, price: 2000 },
-        { id: 'slot_3', time: '10:00 AM - 12:00 PM', available: false, price: 2500 },
-        { id: 'slot_4', time: '12:00 PM - 02:00 PM', available: true, price: 2500 },
-        { id: 'slot_5', time: '02:00 PM - 04:00 PM', available: true, price: 2500 },
-        { id: 'slot_6', time: '04:00 PM - 06:00 PM', available: false, price: 3000 },
-        { id: 'slot_7', time: '06:00 PM - 08:00 PM', available: true, price: 3000 },
-        { id: 'slot_8', time: '08:00 PM - 10:00 PM', available: true, price: 3000 },
-    ];
-
-    console.log('[turfService] Fetched slots for:', turfId, date);
-    return mockSlots;
+    return slots.map(s => ({
+        ...s,
+        id: s.slot_id,
+        time: `${s.start_time} - ${s.end_time}`,
+        available: !s.is_booked, // Convert 0/1 or false/true to available boolean
+        price: 2000,
+    }));
 };
 
 /**
@@ -158,53 +148,37 @@ export const createBooking = async (bookingData: {
     turfId: string;
     date: string;
     slotId: string;
+    userId: number;
+    amount: number;
 }): Promise<Booking> => {
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    const mockBooking: Booking = {
-        id: `booking_${Date.now()}`,
-        turfId: bookingData.turfId,
-        turfName: 'Green Valley Cricket Ground',
-        date: bookingData.date,
-        slot: {
-            id: bookingData.slotId,
-            time: '06:00 PM - 08:00 PM',
-            available: false,
-            price: 3000,
+    const booking = await apiRequest<Booking>(
+        '/bookings',
+        'POST',
+        {
+            slot_id: parseInt(bookingData.slotId),
+            booked_by: bookingData.userId,
+            total_amount: bookingData.amount
         },
-        totalPrice: 3000,
-        status: 'Confirmed',
-        bookingDate: new Date().toISOString(),
-    };
+        true
+    );
 
-    console.log('[turfService] Created booking:', mockBooking);
-    return mockBooking;
+    // Clean up response for frontend consumption
+    return {
+        ...booking,
+        id: booking.booking_id,
+        status: 'confirmed', // Assuming auto-confirm for now or pending based on backend
+        totalPrice: booking.total_amount,
+        turfId: bookingData.turfId
+    };
 };
 
 /**
  * Get user's bookings
+ * Note: Backend endpoint for 'my bookings' is not yet implemented in provided list.
+ * Returning empty for now or mock.
  */
 export const getBookings = async (): Promise<Booking[]> => {
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    const mockBookings: Booking[] = [
-        {
-            id: 'booking_1',
-            turfId: 'turf_1',
-            turfName: 'Green Valley Cricket Ground',
-            date: '2025-12-15',
-            slot: {
-                id: 'slot_7',
-                time: '06:00 PM - 08:00 PM',
-                available: false,
-                price: 3000,
-            },
-            totalPrice: 3000,
-            status: 'Confirmed',
-            bookingDate: '2025-12-01T10:30:00Z',
-        },
-    ];
-
-    console.log('[turfService] Fetched bookings');
-    return mockBookings;
+    // Placeholder until GET /bookings is implemented for users
+    // await new Promise(r => setTimeout(r, 500));
+    return [];
 };

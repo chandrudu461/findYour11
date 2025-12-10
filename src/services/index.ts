@@ -10,8 +10,6 @@ export * from './turfService';
 export * from './scoringService';
 export * from './learnService';
 export * from './awsLambdaClient';
-export * as UserApi from './user';
-export * as TurfsApi from './turfs';
-export * as MatchesApi from './matches';
+
 
 
