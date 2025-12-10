@@ -1,10 +1,10 @@
 /**
- * LoginScreen - Premium Cinematic Design with API Integration
+ * SignUpScreen (CreateAccountScreen) - Premium Design with API Integration
  * 
- * Apple-inspired premium login experience with email/password authentication.
- * Integrated with FindYour11 authentication API.
+ * Apple-inspired premium registration experience.
+ * Integrated with FindYour11 user registration API.
  * 
- * API: POST /auth/login
+ * API: POST /users/register
  */
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -30,56 +30,93 @@ import {
 } from '../../components/ui';
 import { useAuth } from '../../context';
 
-type LoginScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
+type SignUpScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'SignUp'>;
 
 // Brand Colors
 const COLORS = {
+    primaryGreen: '#0A9E4B',
     accentOrange: '#FF8A00',
     softWhite: '#F9F9F9',
     textMuted: 'rgba(255, 255, 255, 0.5)',
     glassBorder: 'rgba(255, 255, 255, 0.1)',
     errorRed: '#FF4757',
+    successGreen: '#0A9E4B',
+    warningOrange: '#FF8A00',
 };
 
-export default function LoginScreen() {
-    const navigation = useNavigation<LoginScreenNavigationProp>();
-    const { login, isLoading, isAuthenticated } = useAuth();
+/**
+ * Password strength calculator
+ */
+const getPasswordStrength = (password: string): {
+    strength: number;
+    label: string;
+    color: string;
+} => {
+    if (!password) return { strength: 0, label: '', color: 'transparent' };
+
+    let strength = 0;
+    if (password.length >= 8) strength += 25;
+    if (/[A-Z]/.test(password)) strength += 25;
+    if (/[0-9]/.test(password)) strength += 25;
+    if (/[^A-Za-z0-9]/.test(password)) strength += 25;
+
+    if (strength <= 25) return { strength, label: 'Weak', color: COLORS.errorRed };
+    if (strength <= 50) return { strength, label: 'Fair', color: COLORS.warningOrange };
+    if (strength <= 75) return { strength, label: 'Good', color: COLORS.primaryGreen };
+    return { strength, label: 'Strong', color: COLORS.successGreen };
+};
+
+export default function SignUpScreen() {
+    const navigation = useNavigation<SignUpScreenNavigationProp>();
+    const { register, isLoading, isAuthenticated } = useAuth();
     const { width } = Dimensions.get('window');
 
+    const [name, setName] = useState('');
     const [email, setEmail] = useState('');
+    const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
-    const [errors, setErrors] = useState<{ email?: string; password?: string; form?: string }>({});
+    const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-    // Fade in animation for bottom section
+    // Password strength animation
+    const strengthAnim = useRef(new Animated.Value(0)).current;
+    const passwordStrength = getPasswordStrength(password);
+
+    // Bottom section animations
     const bottomFade = useRef(new Animated.Value(0)).current;
     const bottomTranslate = useRef(new Animated.Value(30)).current;
 
     useEffect(() => {
-        // Delayed entrance for bottom section
         Animated.parallel([
             Animated.timing(bottomFade, {
                 toValue: 1,
                 duration: 800,
-                delay: 1200,
+                delay: 1400,
                 useNativeDriver: true,
             }),
             Animated.spring(bottomTranslate, {
                 toValue: 0,
                 friction: 8,
                 tension: 40,
-                delay: 1200,
+                delay: 1400,
                 useNativeDriver: true,
             }),
         ]).start();
     }, []);
 
-    // Navigate to main app when authenticated
+    useEffect(() => {
+        Animated.timing(strengthAnim, {
+            toValue: passwordStrength.strength,
+            duration: 400,
+            useNativeDriver: false,
+        }).start();
+    }, [passwordStrength.strength]);
+
+    // Navigate when authenticated
     useEffect(() => {
         if (isAuthenticated) {
-            // Navigate to main app - using replace to prevent going back to login
             navigation.reset({
                 index: 0,
-                routes: [{ name: 'Onboarding' }], // Or directly to Main if onboarding is complete
+                routes: [{ name: 'Onboarding' }],
             });
         }
     }, [isAuthenticated, navigation]);
@@ -88,12 +125,22 @@ export default function LoginScreen() {
      * Validate form inputs
      */
     const validateForm = (): boolean => {
-        const newErrors: typeof errors = {};
+        const newErrors: { [key: string]: string } = {};
+
+        if (!name.trim()) {
+            newErrors.name = 'Full name is required';
+        }
 
         if (!email.trim()) {
             newErrors.email = 'Email is required';
-        } else if (!email.includes('@')) {
+        } else if (!email.includes('@') || !email.includes('.')) {
             newErrors.email = 'Please enter a valid email';
+        }
+
+        if (!phone.trim()) {
+            newErrors.phone = 'Phone number is required';
+        } else if (phone.length < 10) {
+            newErrors.phone = 'Please enter a valid 10-digit number';
         }
 
         if (!password.trim()) {
@@ -107,28 +154,45 @@ export default function LoginScreen() {
     };
 
     /**
-     * Handle login button press
+     * Handle registration
      */
-    const handleLogin = async () => {
+    const handleSignUp = async () => {
         setErrors({});
 
         if (!validateForm()) return;
 
-        const result = await login(email, password);
+        const result = await register({
+            name: name.trim(),
+            email: email.trim().toLowerCase(),
+            phone: phone.trim(),
+            password,
+        });
 
-        if (!result.success) {
-            setErrors({ form: result.message || 'Login failed. Please check your credentials.' });
+        if (result.success) {
+            // Show success message and navigate
+            Alert.alert(
+                'Account Created!',
+                result.message || 'Welcome to FindYour11!',
+                [{ text: 'Continue', onPress: () => { } }]
+            );
+        } else {
+            setErrors({ form: result.message || 'Registration failed. Please try again.' });
         }
     };
 
     /**
-     * Navigate to Sign Up screen
+     * Navigate to Login screen
      */
-    const handleSignUp = () => {
-        navigation.navigate('SignUp' as any);
+    const handleLogin = () => {
+        navigation.navigate('Login');
     };
 
     const isWideScreen = width > 768;
+
+    const strengthWidth = strengthAnim.interpolate({
+        inputRange: [0, 100],
+        outputRange: ['0%', '100%'],
+    });
 
     return (
         <PremiumBackground>
@@ -144,12 +208,13 @@ export default function LoginScreen() {
                     keyboardShouldPersistTaps="handled"
                     showsVerticalScrollIndicator={false}
                 >
-                    {/* Hero Header with animated logo */}
+                    {/* Hero Header */}
                     <HeroHeader
-                        title="FindYour11"
-                        subtitle="Step into the ultimate cricket experience. Build your dream team."
+                        title="Join the Game"
+                        subtitle="Create your account to unlock the full cricket experience"
                         showLogo={true}
-                        animationDelay={200}
+                        animationDelay={100}
+                        size="medium"
                     />
 
                     {/* Form Container */}
@@ -161,7 +226,22 @@ export default function LoginScreen() {
                             </View>
                         )}
 
-                        {/* Email Input */}
+                        {/* Full Name */}
+                        <CinematicInput
+                            label="Full Name"
+                            icon="user"
+                            value={name}
+                            onChangeText={(text) => {
+                                setName(text);
+                                setErrors(prev => ({ ...prev, name: '', form: '' }));
+                            }}
+                            autoCapitalize="words"
+                            autoComplete="name"
+                            error={errors.name}
+                            animationDelay={500}
+                        />
+
+                        {/* Email */}
                         <CinematicInput
                             label="Email Address"
                             icon="email"
@@ -174,10 +254,26 @@ export default function LoginScreen() {
                             autoCapitalize="none"
                             autoComplete="email"
                             error={errors.email}
-                            animationDelay={800}
+                            animationDelay={600}
                         />
 
-                        {/* Password Input */}
+                        {/* Phone */}
+                        <CinematicInput
+                            label="Phone Number"
+                            icon="phone"
+                            value={phone}
+                            onChangeText={(text) => {
+                                setPhone(text);
+                                setErrors(prev => ({ ...prev, phone: '', form: '' }));
+                            }}
+                            keyboardType="phone-pad"
+                            maxLength={10}
+                            autoComplete="tel"
+                            error={errors.phone}
+                            animationDelay={700}
+                        />
+
+                        {/* Password */}
                         <CinematicInput
                             label="Password"
                             icon="lock"
@@ -187,20 +283,40 @@ export default function LoginScreen() {
                                 setErrors(prev => ({ ...prev, password: '', form: '' }));
                             }}
                             secureTextEntry
-                            autoComplete="password"
+                            autoComplete="password-new"
                             error={errors.password}
-                            animationDelay={900}
+                            animationDelay={800}
                         />
 
-                        {/* Login Button */}
+                        {/* Password Strength Indicator */}
+                        {password.length > 0 && (
+                            <View style={styles.strengthContainer}>
+                                <View style={styles.strengthBar}>
+                                    <Animated.View
+                                        style={[
+                                            styles.strengthFill,
+                                            {
+                                                width: strengthWidth,
+                                                backgroundColor: passwordStrength.color,
+                                            },
+                                        ]}
+                                    />
+                                </View>
+                                <Text style={[styles.strengthLabel, { color: passwordStrength.color }]}>
+                                    {passwordStrength.label}
+                                </Text>
+                            </View>
+                        )}
+
+                        {/* Create Account Button */}
                         <View style={styles.buttonContainer}>
                             <PremiumButton
-                                title="Sign In"
-                                onPress={handleLogin}
+                                title="Create Account"
+                                onPress={handleSignUp}
                                 loading={isLoading}
                                 disabled={isLoading}
                                 variant="primary"
-                                animationDelay={1000}
+                                animationDelay={900}
                             />
                         </View>
 
@@ -219,7 +335,7 @@ export default function LoginScreen() {
                             <View style={styles.dividerLine} />
                         </Animated.View>
 
-                        {/* Create Account */}
+                        {/* Login Button */}
                         <Animated.View
                             style={{
                                 opacity: bottomFade,
@@ -227,10 +343,10 @@ export default function LoginScreen() {
                             }}
                         >
                             <PremiumButton
-                                title="Create New Account"
-                                onPress={handleSignUp}
-                                variant="secondary"
-                                animationDelay={1100}
+                                title="Already have an account? Sign In"
+                                onPress={handleLogin}
+                                variant="ghost"
+                                animationDelay={1000}
                             />
                         </Animated.View>
                     </View>
@@ -245,7 +361,7 @@ export default function LoginScreen() {
                             },
                         ]}
                     >
-                        By continuing, you agree to our{' '}
+                        By creating an account, you agree to our{' '}
                         <Text style={styles.termsLink}>Terms of Service</Text>
                         {' '}and{' '}
                         <Text style={styles.termsLink}>Privacy Policy</Text>
@@ -264,7 +380,7 @@ const styles = StyleSheet.create({
         flexGrow: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingVertical: 60,
+        paddingVertical: 48,
         paddingHorizontal: 24,
     },
     wideScreenContent: {
@@ -291,13 +407,35 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         textAlign: 'center',
     },
+    strengthContainer: {
+        marginTop: -16,
+        marginBottom: 24,
+    },
+    strengthBar: {
+        height: 4,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        borderRadius: 2,
+        overflow: 'hidden',
+    },
+    strengthFill: {
+        height: '100%',
+        borderRadius: 2,
+    },
+    strengthLabel: {
+        fontSize: 12,
+        fontWeight: '600',
+        marginTop: 8,
+        textAlign: 'right',
+        letterSpacing: 0.5,
+        textTransform: 'uppercase',
+    },
     buttonContainer: {
         marginTop: 8,
     },
     divider: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginVertical: 32,
+        marginVertical: 28,
     },
     dividerLine: {
         flex: 1,
@@ -307,18 +445,18 @@ const styles = StyleSheet.create({
     dividerText: {
         color: COLORS.textMuted,
         paddingHorizontal: 20,
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: '500',
         letterSpacing: 1,
         textTransform: 'uppercase',
     },
     terms: {
         color: COLORS.textMuted,
-        fontSize: 13,
+        fontSize: 12,
         textAlign: 'center',
-        marginTop: 40,
-        lineHeight: 20,
-        maxWidth: 320,
+        marginTop: 32,
+        lineHeight: 18,
+        maxWidth: 300,
     },
     termsLink: {
         color: COLORS.accentOrange,

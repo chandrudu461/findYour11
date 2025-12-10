@@ -2,7 +2,7 @@
  * Auth Stack Navigator
  * 
  * Handles authentication flow screens
- * Flow: Splash → Login → OTP Verify → Onboarding
+ * Flow: Splash → Login ↔ SignUp → OTP Verify → Onboarding
  */
 
 import React from 'react';
@@ -13,6 +13,7 @@ import { useTheme } from '../theme';
 // Import auth screens
 import SplashScreen from '../screens/auth/SplashScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
+import SignUpScreen from '../screens/auth/SignUpScreen';
 import OtpVerifyScreen from '../screens/auth/OtpVerifyScreen';
 import OnboardingScreen from '../screens/auth/OnboardingScreen';
 
@@ -25,10 +26,11 @@ export const AuthStack: React.FC = () => {
         <Stack.Navigator
             initialRouteName="Splash"
             screenOptions={{
-                headerShown: false, // Hide header for auth screens
+                headerShown: false,
                 contentStyle: {
-                    backgroundColor: theme.colors.white,
+                    backgroundColor: 'transparent',
                 },
+                animation: 'fade',
             }}
         >
             <Stack.Screen
@@ -39,18 +41,36 @@ export const AuthStack: React.FC = () => {
             <Stack.Screen
                 name="Login"
                 component={LoginScreen}
-                options={{ title: 'Login' }}
+                options={{
+                    title: 'Login',
+                    animation: 'slide_from_right',
+                }}
+            />
+            <Stack.Screen
+                name="SignUp"
+                component={SignUpScreen}
+                options={{
+                    title: 'Sign Up',
+                    animation: 'slide_from_right',
+                }}
             />
             <Stack.Screen
                 name="OtpVerify"
                 component={OtpVerifyScreen}
-                options={{ title: 'Verify OTP' }}
+                options={{
+                    title: 'Verify OTP',
+                    animation: 'slide_from_bottom',
+                }}
             />
             <Stack.Screen
                 name="Onboarding"
                 component={OnboardingScreen}
-                options={{ title: 'Welcome' }}
+                options={{
+                    title: 'Welcome',
+                    animation: 'fade',
+                }}
             />
         </Stack.Navigator>
     );
 };
+

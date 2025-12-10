@@ -5,6 +5,7 @@
  * Supports web, Android, and iOS platforms
  * 
  * Architecture:
+ * - Auth Provider: Global authentication state
  * - Theme Provider: Global theme management
  * - Navigation: Type-safe React Navigation
  * - Folders: Organized by feature (screens, components, services, etc.)
@@ -13,13 +14,17 @@
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { ThemeProvider } from './src/theme';
+import { AuthProvider } from './src/context';
 import { RootNavigator } from './src/navigation';
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <StatusBar style="auto" />
-      <RootNavigator />
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider>
+        <StatusBar style="light" />
+        <RootNavigator />
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
+

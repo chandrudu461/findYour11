@@ -15,3 +15,16 @@ export { Card } from './Card';
 export { Loader } from './Loader';
 export { Tag } from './Tag';
 export { SectionHeader } from './SectionHeader';
+
+// Animated components for auth screens
+export { AnimatedBackground } from './AnimatedBackground';
+export { GlassCard } from './GlassCard';
+export { AnimatedInput } from './AnimatedInput';
+export { AnimatedButton } from './AnimatedButton';
+
+// Premium cinematic components
+export { PremiumBackground } from './PremiumBackground';
+export { CinematicInput } from './CinematicInput';
+export { PremiumButton } from './PremiumButton';
+export { HeroHeader } from './HeroHeader';
+

@@ -9,11 +9,12 @@ import { NavigatorScreenParams } from '@react-navigation/native';
 
 /**
  * Auth Stack Parameter List
- * Screens: Splash, Login, OtpVerify, Onboarding
+ * Screens: Splash, Login, SignUp, OtpVerify, Onboarding
  */
 export type AuthStackParamList = {
     Splash: undefined;
     Login: undefined;
+    SignUp: undefined;
     OtpVerify: { phoneNumber: string };
     Onboarding: undefined;
 };
