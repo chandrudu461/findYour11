@@ -4,23 +4,26 @@
  * Allow turf owners to create a new turf/ground.
  */
 
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Alert, TouchableOpacity, View, Text, ScrollView } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RouteProp } from '@react-navigation/native';
 import { TurfsStackParamList } from '../../navigation/types';
 import { ScreenContainer, Spacer } from '../../components/layout';
-import { PrimaryButton, InputField, SectionHeader } from '../../components/ui';
+import { PrimaryButton, InputField, SectionHeader, SuccessAnimation } from '../../components/ui';
 import { useTheme } from '../../theme';
 import { createTurf } from '../../services';
 import { useAuth } from '../../context';
 
 type CreateTurfScreenNavigationProp = NativeStackNavigationProp<TurfsStackParamList, 'CreateTurf'>;
+type CreateTurfScreenRouteProp = RouteProp<TurfsStackParamList, 'CreateTurf'>;
 
 interface CreateTurfScreenProps {
     navigation: CreateTurfScreenNavigationProp;
+    route: CreateTurfScreenRouteProp;
 }
 
-const CreateTurfScreen: React.FC<CreateTurfScreenProps> = ({ navigation }) => {
+const CreateTurfScreen: React.FC<CreateTurfScreenProps> = ({ navigation, route }) => {
     const theme = useTheme();
     const { user } = useAuth();
 
@@ -29,6 +32,19 @@ const CreateTurfScreen: React.FC<CreateTurfScreenProps> = ({ navigation }) => {
     const [city, setCity] = useState('');
     const [pricePerHour, setPricePerHour] = useState('');
     const [loading, setLoading] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false);
+    const [createdTurfId, setCreatedTurfId] = useState<string>('');
+
+    // Handle location selection from LocationPicker
+    useEffect(() => {
+        if (route.params?.selectedLocation) {
+            const { address, city: selectedCity } = route.params.selectedLocation;
+            setLocation(address);
+            setCity(selectedCity);
+            // Clear the params after using them
+            navigation.setParams({ selectedLocation: undefined } as any);
+        }
+    }, [route.params?.selectedLocation]);
 
     const handleCreateTurf = async () => {
         // Validation
@@ -66,21 +82,9 @@ const CreateTurfScreen: React.FC<CreateTurfScreenProps> = ({ navigation }) => {
 
             console.log('✅ CREATE TURF SUCCESS:', result);
 
-            Alert.alert(
-                'Success',
-                `Turf "${turfName}" created successfully!`,
-                [
-                    {
-                        text: 'Add Slots',
-                        onPress: () => {
-                            navigation.navigate('ManageSlots', {
-                                turfId: result.turf_id.toString(),
-                                turfName: turfName,
-                            });
-                        },
-                    },
-                ]
-            );
+            // Store turf ID and show animation
+            setCreatedTurfId(result.turf_id.toString());
+            setShowSuccess(true);
         } catch (error: any) {
             console.error('❌ CREATE TURF ERROR:', error);
             Alert.alert('Error', error.message || 'Failed to create turf');
@@ -89,69 +93,109 @@ const CreateTurfScreen: React.FC<CreateTurfScreenProps> = ({ navigation }) => {
         }
     };
 
+    const handleAnimationComplete = () => {
+        setShowSuccess(false);
+        navigation.navigate('ManageSlots', {
+            turfId: createdTurfId,
+            turfName: turfName,
+        });
+    };
+
     return (
         <ScreenContainer>
-            <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+            <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: theme.spacing.md }}>
                 <SectionHeader title="Create New Turf" />
-                <Spacer size="md" />
+                <Text style={[styles.subtitle, { color: theme.colors.textLight }]}>
+                    Fill in the details to list your cricket ground
+                </Text>
+                <Spacer size="lg" />
 
+                {/* Turf Name */}
                 <Text style={[styles.label, { color: theme.colors.textDark }]}>
                     Turf Name *
                 </Text>
                 <InputField
-                    placeholder="e.g., Test Cricket Ground"
+                    placeholder="e.g., Champions Cricket Ground"
                     value={turfName}
                     onChangeText={setTurfName}
                 />
-                <Spacer size="sm" />
+                <Spacer size="md" />
 
+                {/* Location Selection with Map */}
                 <Text style={[styles.label, { color: theme.colors.textDark }]}>
-                    Location/Address *
+                    Location *
                 </Text>
-                <InputField
-                    placeholder="e.g., MG Road, Near Phoenix Mall"
-                    value={location}
-                    onChangeText={setLocation}
-                />
-                <Spacer size="sm" />
+                <TouchableOpacity
+                    onPress={() => navigation.navigate('LocationPicker')}
+                    style={styles.locationButton}
+                >
+                    <View pointerEvents="none">
+                        <InputField
+                            label=""
+                            value={location}
+                            onChangeText={() => { }} // Disabled as it's read-only
+                            placeholder="Tap to select location on map 📍"
+                            editable={false}
+                        />
+                    </View>
+                </TouchableOpacity>
+                <Spacer size="md" />
 
+                {/* City */}
                 <Text style={[styles.label, { color: theme.colors.textDark }]}>
                     City *
                 </Text>
                 <InputField
-                    placeholder="e.g., Bangalore"
+                    label=""
                     value={city}
                     onChangeText={setCity}
+                    placeholder="Auto-filled from map"
                 />
-                <Spacer size="sm" />
+                <Spacer size="md" />
 
+                {/* Price */}
                 <Text style={[styles.label, { color: theme.colors.textDark }]}>
                     Price per Hour (₹) *
                 </Text>
                 <InputField
+                    label=""
                     placeholder="e.g., 2000"
                     value={pricePerHour}
                     onChangeText={setPricePerHour}
                     keyboardType="numeric"
                 />
-                <Spacer size="lg" />
+                <Spacer size="xl" />
 
                 <PrimaryButton
                     title={loading ? 'Creating Turf...' : 'Create Turf'}
                     onPress={handleCreateTurf}
                     disabled={loading}
                 />
-                <Spacer size="md" />
+                <Spacer size="lg" />
             </ScrollView>
+
+            {/* Success Animation */}
+            <SuccessAnimation
+                visible={showSuccess}
+                message="Turf Created Successfully! 🎉"
+                onComplete={handleAnimationComplete}
+            />
         </ScreenContainer>
     );
 };
 
 const styles = StyleSheet.create({
-    label: {
+    subtitle: {
         fontSize: 14,
+        marginTop: 5,
+    },
+    label: {
+        fontSize: 15,
         fontWeight: '600',
         marginBottom: 8,
+    },
+    locationButton: {
+        marginBottom: 0,
     },
 });
 

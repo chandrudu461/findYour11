@@ -53,9 +53,22 @@ export type TurfsStackParamList = {
         slot: string;
         price: number;
     };
-    CreateTurf: undefined;
+    CreateTurf: {
+        selectedLocation?: {
+            address: string;
+            city: string;
+            latitude: number;
+            longitude: number;
+        };
+    } | undefined;
     ManageSlots: { turfId: string; turfName: string };
     MyTurfs: undefined;
+    LocationPicker?: { onSelectLocation?: (location: any) => void };
+    TurfSlotsCalendar: {
+        turfId: string;
+        turfName: string;
+        price: number;
+    };
 };
 
 /**

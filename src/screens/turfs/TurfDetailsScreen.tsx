@@ -13,6 +13,7 @@ import { ScreenContainer, Spacer, HeaderBar } from '../../components/layout';
 import { Card, PrimaryButton, Tag, SectionHeader } from '../../components/ui';
 import { useTheme } from '../../theme';
 import { getTurfDetails, Turf } from '../../services';
+import { useAuth } from '../../context';
 
 type TurfDetailsScreenNavigationProp = NativeStackNavigationProp<TurfsStackParamList, 'TurfDetails'>;
 type TurfDetailsScreenRouteProp = RouteProp<TurfsStackParamList, 'TurfDetails'>;
@@ -25,6 +26,7 @@ export default function TurfDetailsScreen() {
     const { turfId } = route.params;
     const [turf, setTurf] = useState<Turf | null>(null);
     const [loading, setLoading] = useState(true);
+    const { user } = useAuth();
 
     useEffect(() => {
         fetchTurfDetails();
@@ -153,11 +155,27 @@ export default function TurfDetailsScreen() {
 
                     <Spacer size="xl" />
 
-                    {/* Book Button */}
-                    <PrimaryButton
-                        title="Book Slot"
-                        onPress={() => navigation.navigate('BookTurf', { turfId: turf.id! })}
-                    />
+                    {/* Conditional Button: Book for users, Manage for owners */}
+                    {user && user.role === 'turf_owner' && turf.owner_id && String(turf.owner_id) === String(user.user_id) ? (
+                        // Show Manage Slots button for turf owner viewing their own turf
+                        <PrimaryButton
+                            title="Manage Slots"
+                            onPress={() => navigation.navigate('ManageSlots', {
+                                turfId: turf.id!,
+                                turfName: turf.name!
+                            })}
+                        />
+                    ) : (
+                        // Show Book Slot button for everyone else (including turf owners viewing other turfs)
+                        <PrimaryButton
+                            title="Book Slot"
+                            onPress={() => navigation.navigate('TurfSlotsCalendar', {
+                                turfId: turf.id!,
+                                turfName: turf.name!,
+                                price: turf.price || 0
+                            })}
+                        />
+                    )}
 
                     <Spacer size="lg" />
                 </View>

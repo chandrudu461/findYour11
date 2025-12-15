@@ -9,14 +9,14 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, Platform } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { TurfsStackParamList } from '../../navigation/types';
 import { ScreenContainer, Spacer } from '../../components/layout';
-import { PrimaryButton, InputField, SectionHeader, Card } from '../../components/ui';
+import { PrimaryButton, InputField, SectionHeader, Card, SuccessAnimation, SimpleDatePicker } from '../../components/ui';
 import { useTheme } from '../../theme';
-import { createSlot } from '../../services';
+import { createBulkSlots, getAvailableSlots, TimeSlot } from '../../services';
 
 type SlotGeneratorScreenNavigationProp = NativeStackNavigationProp<TurfsStackParamList, 'ManageSlots'>;
 type SlotGeneratorScreenRouteProp = RouteProp<TurfsStackParamList, 'ManageSlots'>;
@@ -32,6 +32,7 @@ interface GeneratedSlot {
     start_time: string;
     end_time: string;
     selected: boolean;
+    existing?: boolean; // Mark if slot already exists
 }
 
 const SlotGeneratorScreen: React.FC<SlotGeneratorScreenProps> = ({ navigation, route }) => {
@@ -47,10 +48,13 @@ const SlotGeneratorScreen: React.FC<SlotGeneratorScreenProps> = ({ navigation, r
 
     // Generated slots
     const [generatedSlots, setGeneratedSlots] = useState<GeneratedSlot[]>([]);
+    const [existingSlots, setExistingSlots] = useState<TimeSlot[]>([]);
     const [creating, setCreating] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false);
+    const [successCount, setSuccessCount] = useState(0);
 
     useEffect(() => {
-        // Set default dates (next 7 days)
+        // Set default dates (tomorrow to next week)
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         const weekLater = new Date(tomorrow);
@@ -60,6 +64,13 @@ const SlotGeneratorScreen: React.FC<SlotGeneratorScreenProps> = ({ navigation, r
         setEndDate(formatDate(weekLater));
     }, []);
 
+    // Fetch existing slots when date range changes
+    useEffect(() => {
+        if (startDate && endDate) {
+            fetchExistingSlots(startDate, endDate);
+        }
+    }, [startDate, endDate]);
+
     const formatDate = (date: Date): string => {
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -67,9 +78,20 @@ const SlotGeneratorScreen: React.FC<SlotGeneratorScreenProps> = ({ navigation, r
         return `${year}-${month}-${day}`;
     };
 
-    const parseTime = (timeStr: string): { hours: number; minutes: number } => {
-        const [hours, minutes] = timeStr.split(':').map(Number);
-        return { hours, minutes };
+    const formatTime = (date: Date): string => {
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${hours}:${minutes}`;
+    };
+
+    const parseTime = (time: Date | string): { hours: number; minutes: number } => {
+        if (typeof time === 'string') {
+            // Parse HH:MM format
+            const [hours, minutes] = time.split(':').map(Number);
+            return { hours, minutes };
+        }
+        // Handle Date object
+        return { hours: time.getHours(), minutes: time.getMinutes() };
     };
 
     const addMinutes = (time: { hours: number; minutes: number }, mins: number) => {
@@ -81,6 +103,29 @@ const SlotGeneratorScreen: React.FC<SlotGeneratorScreenProps> = ({ navigation, r
 
     const timeToString = (time: { hours: number; minutes: number }): string => {
         return `${String(time.hours).padStart(2, '0')}:${String(time.minutes).padStart(2, '0')}:00`;
+    };
+
+    const fetchExistingSlots = async (start: string, end: string) => {
+        if (!start || !end) return;
+
+        const existing: TimeSlot[] = [];
+        const startDate = new Date(start);
+        const endDate = new Date(end);
+        const currentDate = new Date(startDate);
+
+        // Fetch slots for each date
+        while (currentDate <= endDate) {
+            const dateStr = formatDate(currentDate);
+            try {
+                const response = await getAvailableSlots(turfId, dateStr);
+                existing.push(...response);
+            } catch (error) {
+                console.error('Error fetching existing slots:', error);
+            }
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        setExistingSlots(existing);
     };
 
     const generateSlots = () => {
@@ -112,12 +157,23 @@ const SlotGeneratorScreen: React.FC<SlotGeneratorScreenProps> = ({ navigation, r
 
                 // Check if slot end doesn't exceed day end time
                 if (slotEnd.hours * 60 + slotEnd.minutes <= endTime.hours * 60 + endTime.minutes) {
+                    const startTimeStr = timeToString(slotStart);
+                    const endTimeStr = timeToString(slotEnd);
+
+                    // Check if this slot already exists
+                    const exists = existingSlots.some(
+                        s => s.date === dateStr &&
+                            s.start_time === startTimeStr &&
+                            s.end_time === endTimeStr
+                    );
+
                     slots.push({
                         id: `slot-${slotId++}`,
                         date: dateStr,
-                        start_time: timeToString(slotStart),
-                        end_time: timeToString(slotEnd),
-                        selected: true,
+                        start_time: startTimeStr,
+                        end_time: endTimeStr,
+                        selected: !exists, // Don't select existing slots
+                        existing: exists,
                     });
                 }
 
@@ -128,13 +184,18 @@ const SlotGeneratorScreen: React.FC<SlotGeneratorScreenProps> = ({ navigation, r
         }
 
         setGeneratedSlots(slots);
-        Alert.alert('Success', `Generated ${slots.length} slots!`);
+        const newCount = slots.filter(s => !s.existing).length;
+        const existingCount = slots.filter(s => s.existing).length;
+        Alert.alert(
+            'Slots Generated',
+            `${newCount} new slots, ${existingCount} already exist`
+        );
     };
 
     const toggleSlot = (id: string) => {
         setGeneratedSlots(prev =>
             prev.map(slot =>
-                slot.id === id ? { ...slot, selected: !slot.selected } : slot
+                slot.id === id && !slot.existing ? { ...slot, selected: !slot.selected } : slot
             )
         );
     };
@@ -147,48 +208,44 @@ const SlotGeneratorScreen: React.FC<SlotGeneratorScreenProps> = ({ navigation, r
     };
 
     const createAllSlots = async () => {
-        const selectedSlots = generatedSlots.filter(s => s.selected);
+        const selectedSlots = generatedSlots.filter(s => s.selected && !s.existing);
 
         if (selectedSlots.length === 0) {
-            Alert.alert('Error', 'Please select at least one slot');
+            Alert.alert('Error', 'Please select at least one new slot');
             return;
         }
 
         setCreating(true);
-        let successCount = 0;
-        let errorCount = 0;
 
         try {
-            for (const slot of selectedSlots) {
-                try {
-                    await createSlot(turfId, {
-                        date: slot.date,
-                        start_time: slot.start_time,
-                        end_time: slot.end_time,
-                    });
-                    successCount++;
-                } catch (error) {
-                    console.error('Failed to create slot:', error);
-                    errorCount++;
-                }
+            // Use bulk creation API
+            const result = await createBulkSlots(turfId, selectedSlots.map(slot => ({
+                date: slot.date,
+                start_time: slot.start_time,
+                end_time: slot.end_time,
+            })));
+
+            setSuccessCount(result.created);
+
+            if (result.failed > 0 && result.errors) {
+                console.log('Some slots failed:', result.errors);
             }
 
-            Alert.alert(
-                'Slots Created',
-                `Successfully created ${successCount} slots${errorCount > 0 ? `. Failed: ${errorCount}` : ''}`,
-                [
-                    {
-                        text: 'OK',
-                        onPress: () => navigation.goBack(),
-                    },
-                ]
-            );
+            setShowSuccess(true);
+        } catch (error: any) {
+            console.error('Failed to create slots:', error);
+            Alert.alert('Error', error.message || 'Failed to create slots');
         } finally {
             setCreating(false);
         }
     };
 
     const selectedCount = generatedSlots.filter(s => s.selected).length;
+
+    const handleAnimationComplete = () => {
+        setShowSuccess(false);
+        navigation.goBack();
+    };
 
     return (
         <ScreenContainer>
@@ -198,25 +255,19 @@ const SlotGeneratorScreen: React.FC<SlotGeneratorScreenProps> = ({ navigation, r
                     <Spacer size="md" />
 
                     {/* Date Range */}
-                    <Text style={[styles.label, { color: theme.colors.textDark }]}>
-                        Start Date (YYYY-MM-DD)
-                    </Text>
-                    <InputField
+                    <SimpleDatePicker
+                        label="Start Date"
                         value={startDate}
-                        onChangeText={setStartDate}
-                        placeholder="2025-12-17"
+                        mode="date"
+                        onChange={setStartDate}
                     />
-                    <Spacer size="sm" />
 
-                    <Text style={[styles.label, { color: theme.colors.textDark }]}>
-                        End Date (YYYY-MM-DD)
-                    </Text>
-                    <InputField
+                    <SimpleDatePicker
+                        label="End Date"
                         value={endDate}
-                        onChangeText={setEndDate}
-                        placeholder="2025-12-24"
+                        mode="date"
+                        onChange={setEndDate}
                     />
-                    <Spacer size="md" />
 
                     {/* Operating Hours */}
                     <Text style={[styles.label, { color: theme.colors.textDark }]}>
@@ -224,23 +275,19 @@ const SlotGeneratorScreen: React.FC<SlotGeneratorScreenProps> = ({ navigation, r
                     </Text>
                     <View style={styles.row}>
                         <View style={{ flex: 1, marginRight: 8 }}>
-                            <Text style={{ color: theme.colors.textLight, fontSize: 12, marginBottom: 4 }}>
-                                From (HH:MM)
-                            </Text>
-                            <InputField
+                            <SimpleDatePicker
+                                label="From"
                                 value={dayStartTime}
-                                onChangeText={setDayStartTime}
-                                placeholder="06:00"
+                                mode="time"
+                                onChange={setDayStartTime}
                             />
                         </View>
                         <View style={{ flex: 1, marginLeft: 8 }}>
-                            <Text style={{ color: theme.colors.textLight, fontSize: 12, marginBottom: 4 }}>
-                                To (HH:MM)
-                            </Text>
-                            <InputField
+                            <SimpleDatePicker
+                                label="To"
                                 value={dayEndTime}
-                                onChangeText={setDayEndTime}
-                                placeholder="22:00"
+                                mode="time"
+                                onChange={setDayEndTime}
                             />
                         </View>
                     </View>
@@ -296,7 +343,11 @@ const SlotGeneratorScreen: React.FC<SlotGeneratorScreenProps> = ({ navigation, r
                             </View>
                             <Spacer size="sm" />
 
-                            <View style={styles.slotsList}>
+                            <ScrollView
+                                style={styles.slotsList}
+                                nestedScrollEnabled={true}
+                                showsVerticalScrollIndicator={true}
+                            >
                                 {generatedSlots.map(slot => (
                                     <TouchableOpacity
                                         key={slot.id}
@@ -305,34 +356,49 @@ const SlotGeneratorScreen: React.FC<SlotGeneratorScreenProps> = ({ navigation, r
                                     >
                                         <Card
                                             style={{
-                                                backgroundColor: slot.selected
-                                                    ? theme.colors.white
-                                                    : theme.colors.bgSoft,
-                                                opacity: slot.selected ? 1 : 0.5,
+                                                backgroundColor: slot.existing
+                                                    ? theme.colors.bgSoft
+                                                    : slot.selected
+                                                        ? theme.colors.white
+                                                        : theme.colors.bgSoft,
+                                                opacity: slot.existing ? 0.6 : slot.selected ? 1 : 0.5,
+                                                borderWidth: slot.existing ? 1 : 0,
+                                                borderColor: slot.existing ? theme.colors.textLight : 'transparent',
                                             }}
                                         >
                                             <View style={styles.slotRow}>
-                                                <View
-                                                    style={[
-                                                        styles.checkbox,
-                                                        {
-                                                            backgroundColor: slot.selected
-                                                                ? theme.colors.primary
-                                                                : theme.colors.white,
-                                                            borderColor: theme.colors.primary,
-                                                        },
-                                                    ]}
-                                                >
-                                                    {slot.selected && (
-                                                        <Text style={{ color: theme.colors.white, fontWeight: 'bold' }}>
-                                                            ✓
+                                                {!slot.existing && (
+                                                    <View
+                                                        style={[
+                                                            styles.checkbox,
+                                                            {
+                                                                backgroundColor: slot.selected
+                                                                    ? theme.colors.primary
+                                                                    : theme.colors.white,
+                                                                borderColor: theme.colors.primary,
+                                                            },
+                                                        ]}
+                                                    >
+                                                        {slot.selected && (
+                                                            <Text style={{ color: theme.colors.white, fontWeight: 'bold' }}>
+                                                                ✓
+                                                            </Text>
+                                                        )}
+                                                    </View>
+                                                )}
+                                                <View style={{ flex: 1, marginLeft: slot.existing ? 0 : 12 }}>
+                                                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                        <Text style={{ color: theme.colors.textDark, fontWeight: '600' }}>
+                                                            {slot.date}
                                                         </Text>
-                                                    )}
-                                                </View>
-                                                <View style={{ flex: 1, marginLeft: 12 }}>
-                                                    <Text style={{ color: theme.colors.textDark, fontWeight: '600' }}>
-                                                        {slot.date}
-                                                    </Text>
+                                                        {slot.existing && (
+                                                            <View style={{ backgroundColor: theme.colors.textLight, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 }}>
+                                                                <Text style={{ color: theme.colors.white, fontSize: 10, fontWeight: '600' }}>
+                                                                    EXISTING
+                                                                </Text>
+                                                            </View>
+                                                        )}
+                                                    </View>
                                                     <Text style={{ color: theme.colors.textLight, fontSize: 12 }}>
                                                         {slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}
                                                     </Text>
@@ -341,19 +407,29 @@ const SlotGeneratorScreen: React.FC<SlotGeneratorScreenProps> = ({ navigation, r
                                         </Card>
                                     </TouchableOpacity>
                                 ))}
-                            </View>
-                            <Spacer size="lg" />
+                                {/* Bottom padding to ensure last items are visible */}
+                                <View style={{ height: 100 }} />
+                            </ScrollView>
+
+                            <Spacer size="md" />
 
                             <PrimaryButton
                                 title={creating ? 'Creating...' : `Create ${selectedCount} Selected Slots`}
                                 onPress={createAllSlots}
                                 disabled={creating || selectedCount === 0}
                             />
-                            <Spacer size="md" />
+                            <Spacer size="xl" />
                         </>
                     )}
                 </View>
             </ScrollView>
+
+            {/* Success Animation */}
+            <SuccessAnimation
+                visible={showSuccess}
+                message={`${successCount} Slots Created! 🎉`}
+                onComplete={handleAnimationComplete}
+            />
         </ScreenContainer>
     );
 };
@@ -385,7 +461,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     slotsList: {
-        maxHeight: 300,
+        maxHeight: 400,
+        marginBottom: 16,
     },
     slotRow: {
         flexDirection: 'row',

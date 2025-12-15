@@ -10,21 +10,36 @@ import { apiRequest } from './authService';
  * Turf type definition
  */
 export interface Turf {
-    turf_id: string; // Backend uses turf_id
-    id?: string; // Frontend compatibility
-    turf_name: string; // Backend uses turf_name
-    name?: string; // Frontend compatibility
-    location: string;
-    city: string;
-    price_per_hour: number; // Backend uses price_per_hour
-    price?: number; // Frontend compatibility
+    id?: string;
+    turf_id?: number;
+    owner_id?: number; // Owner's user ID
+    name?: string;
+    turf_name?: string;
+    location?: string;
+    city?: string;
+    price?: number;
+    price_per_hour?: number;
+    is_active?: boolean;
+    created_at?: string;
     rating?: number;
     surface?: string;
     size?: string;
-    amenities?: string[];
     description?: string;
+    amenities?: string[];
     imageUrl?: string;
-    is_active?: boolean;
+}
+
+/**
+ * Booking details type
+ */
+export interface BookingDetails {
+    booking_id?: number;
+    booked_by?: number;
+    user_name?: string;
+    user_email?: string;
+    user_phone?: string;
+    total_amount?: number;
+    status?: 'pending' | 'confirmed' | 'cancelled';
 }
 
 /**
@@ -40,6 +55,7 @@ export interface TimeSlot {
     available?: boolean; // Frontend compatibility
     price?: number;
     time?: string; // Frontend compatibility
+    booking_details?: BookingDetails; // Booking user details for turf owners
 }
 
 /**
@@ -178,6 +194,25 @@ export const createSlot = async (
         `/turfs/${turfId}/slots`,
         'POST',
         slotData,
+        true // Auth required
+    );
+};
+
+/**
+ * Create multiple time slots for a turf in bulk (Turf Owner only)
+ */
+export const createBulkSlots = async (
+    turfId: string,
+    slots: Array<{
+        date: string; // YYYY-MM-DD
+        start_time: string; // HH:MM:SS
+        end_time: string; // HH:MM:SS
+    }>
+): Promise<{ created: number; failed: number; errors?: string[] }> => {
+    return await apiRequest<{ created: number; failed: number; errors?: string[] }>(
+        `/turfs/${turfId}/slots/bulk`,
+        'POST',
+        { slots },
         true // Auth required
     );
 };

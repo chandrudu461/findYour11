@@ -27,4 +27,7 @@ export { PremiumBackground } from './PremiumBackground';
 export { CinematicInput } from './CinematicInput';
 export { PremiumButton } from './PremiumButton';
 export { HeroHeader } from './HeroHeader';
+export { SuccessAnimation } from './SuccessAnimation';
+export { DateTimePickerField } from './DateTimePickerField';
+export { SimpleDatePicker } from './SimpleDatePicker';
 
