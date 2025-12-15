@@ -86,8 +86,8 @@ export default function TurfListScreen() {
 
                     <Spacer size="md" />
 
-                    {/* Create Turf Button for Turf Owners */}
-                    {user && (
+                    {/* Create Turf Button for Turf Owners ONLY */}
+                    {user && user.role === 'turf_owner' && (
                         <>
                             <PrimaryButton
                                 title="+ Create New Turf"
