@@ -10,15 +10,17 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { TurfsStackParamList } from '../../navigation/types';
 import { ScreenContainer, Spacer } from '../../components/layout';
-import { Card, InputField, Tag, SectionHeader } from '../../components/ui';
+import { Card, InputField, Tag, SectionHeader, PrimaryButton } from '../../components/ui';
 import { useTheme } from '../../theme';
 import { getTurfs, Turf } from '../../services';
+import { useAuth } from '../../context';
 
 type TurfListScreenNavigationProp = NativeStackNavigationProp<TurfsStackParamList, 'TurfsList'>;
 
 export default function TurfListScreen() {
     const navigation = useNavigation<TurfListScreenNavigationProp>();
     const theme = useTheme();
+    const { user } = useAuth();
 
     const [turfs, setTurfs] = useState<Turf[]>([]);
     const [loading, setLoading] = useState(true);
@@ -81,6 +83,19 @@ export default function TurfListScreen() {
                         onChangeText={setSearchQuery}
                         placeholder="Search by name or city..."
                     />
+
+                    <Spacer size="md" />
+
+                    {/* Create Turf Button for Turf Owners */}
+                    {user && (
+                        <>
+                            <PrimaryButton
+                                title="+ Create New Turf"
+                                onPress={() => navigation.navigate('CreateTurf')}
+                            />
+                            <Spacer size="sm" />
+                        </>
+                    )}
 
                     <Spacer size="lg" />
 

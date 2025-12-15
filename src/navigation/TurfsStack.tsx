@@ -14,6 +14,8 @@ import TurfListScreen from '../screens/turfs/TurfListScreen';
 import TurfDetailsScreen from '../screens/turfs/TurfDetailsScreen';
 import SlotBookingScreen from '../screens/turfs/SlotBookingScreen';
 import BookingConfirmationScreen from '../screens/turfs/BookingConfirmationScreen';
+import CreateTurfScreen from '../screens/turfs/CreateTurfScreen';
+import ManageSlotsScreen from '../screens/turfs/ManageSlotsScreen';
 
 const Stack = createNativeStackNavigator<TurfsStackParamList>();
 
@@ -49,6 +51,16 @@ export const TurfsStack: React.FC = () => {
                 name="BookingConfirmation"
                 component={BookingConfirmationScreen}
                 options={{ title: 'Booking Confirmed' }}
+            />
+            <Stack.Screen
+                name="CreateTurf"
+                component={CreateTurfScreen}
+                options={{ title: 'Create Turf' }}
+            />
+            <Stack.Screen
+                name="ManageSlots"
+                component={ManageSlotsScreen}
+                options={{ title: 'Manage Slots' }}
             />
         </Stack.Navigator>
     );

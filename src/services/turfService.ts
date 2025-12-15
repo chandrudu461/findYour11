@@ -127,10 +127,14 @@ export const getAvailableSlots = async (
     turfId: string,
     date: string
 ): Promise<TimeSlot[]> => {
-    const slots = await apiRequest<TimeSlot[]>(
+    // Backend returns: { turf_id, date, slots: [...] }
+    const response = await apiRequest<{ turf_id: number; date: string; slots: TimeSlot[] }>(
         `/turfs/${turfId}/slots?date=${date}`,
         'GET'
     );
+
+    // Extract slots array from response
+    const slots = response.slots || [];
 
     return slots.map(s => ({
         ...s,
@@ -139,6 +143,43 @@ export const getAvailableSlots = async (
         available: !s.is_booked, // Convert 0/1 or false/true to available boolean
         price: 2000,
     }));
+};
+
+/**
+ * Create a new turf (Turf Owner only)
+ */
+export const createTurf = async (turfData: {
+    owner_id: number;
+    turf_name: string;
+    location: string;
+    city: string;
+    price_per_hour: number;
+}): Promise<{ turf_id: number; message: string }> => {
+    return await apiRequest<{ turf_id: number; message: string }>(
+        '/turfs',
+        'POST',
+        turfData,
+        true // Auth required
+    );
+};
+
+/**
+ * Create a time slot for a turf (Turf Owner only)
+ */
+export const createSlot = async (
+    turfId: string,
+    slotData: {
+        date: string; // YYYY-MM-DD
+        start_time: string; // HH:MM:SS
+        end_time: string; // HH:MM:SS
+    }
+): Promise<{ slot_id: number; message: string }> => {
+    return await apiRequest<{ slot_id: number; message: string }>(
+        `/turfs/${turfId}/slots`,
+        'POST',
+        slotData,
+        true // Auth required
+    );
 };
 
 /**

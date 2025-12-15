@@ -40,7 +40,7 @@ export type MatchesStackParamList = {
 
 /**
  * Turfs Stack Parameter List
- * Screens: TurfsList, TurfDetails, BookTurf, BookingConfirmation
+ * Screens: TurfsList, TurfDetails, BookTurf, BookingConfirmation, CreateTurf, ManageSlots
  */
 export type TurfsStackParamList = {
     TurfsList: undefined;
@@ -53,6 +53,8 @@ export type TurfsStackParamList = {
         slot: string;
         price: number;
     };
+    CreateTurf: undefined;
+    ManageSlots: { turfId: string; turfName: string };
 };
 
 /**

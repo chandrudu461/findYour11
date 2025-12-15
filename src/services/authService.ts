@@ -56,6 +56,7 @@ export interface RegisterRequest {
     email: string;
     phone: string;
     password: string;
+    role?: 'player' | 'turf_owner'; // Optional role for future backend support
 }
 
 /**

@@ -41,11 +41,13 @@ export default function SlotBookingScreen() {
     const fetchSlots = async () => {
         try {
             setLoading(true);
+            console.log('🔍 FETCHING SLOTS:', { turfId, date });
             const slotsData = await getAvailableSlots(turfId, date);
+            console.log('✅ SLOTS FETCHED:', slotsData);
             setSlots(slotsData);
-        } catch (error) {
-            console.error('Failed to fetch slots:', error);
-            Alert.alert('Error', 'Failed to fetch slots. Please ensure format YYYY-MM-DD');
+        } catch (error: any) {
+            console.error('❌ FETCH SLOTS ERROR:', error);
+            Alert.alert('Error', error.message || 'Failed to fetch slots. Please ensure format YYYY-MM-DD');
         } finally {
             setLoading(false);
         }
@@ -74,6 +76,14 @@ export default function SlotBookingScreen() {
 
         try {
             setBooking(true);
+            console.log('📝 CREATING BOOKING:', {
+                turfId,
+                date,
+                slotId: selectedSlot.id || selectedSlot.slot_id,
+                userId: userId,
+                amount: selectedSlot.price || 2000,
+            });
+
             const bookingData = await createBooking({
                 turfId,
                 date,
@@ -81,6 +91,8 @@ export default function SlotBookingScreen() {
                 userId: userId,
                 amount: selectedSlot.price || 2000,
             });
+
+            console.log('✅ BOOKING CREATED:', bookingData);
 
             // Navigate to confirmation
             navigation.replace('BookingConfirmation', {
@@ -90,8 +102,9 @@ export default function SlotBookingScreen() {
                 slot: selectedSlot.time || `${selectedSlot.start_time}`,
                 price: bookingData.totalPrice || bookingData.total_amount,
             });
-        } catch (error) {
-            Alert.alert('Error', 'Failed to create booking');
+        } catch (error: any) {
+            console.error('❌ BOOKING ERROR:', error);
+            Alert.alert('Error', error.message || 'Failed to create booking');
         } finally {
             setBooking(false);
         }
