@@ -16,6 +16,7 @@ import SlotBookingScreen from '../screens/turfs/SlotBookingScreen';
 import BookingConfirmationScreen from '../screens/turfs/BookingConfirmationScreen';
 import CreateTurfScreen from '../screens/turfs/CreateTurfScreen';
 import SlotGeneratorScreen from '../screens/turfs/SlotGeneratorScreen';
+import MyTurfsScreen from '../screens/turfs/MyTurfsScreen';
 
 const Stack = createNativeStackNavigator<TurfsStackParamList>();
 
@@ -61,6 +62,11 @@ export const TurfsStack: React.FC = () => {
                 name="ManageSlots"
                 component={SlotGeneratorScreen}
                 options={{ title: 'Generate Slots' }}
+            />
+            <Stack.Screen
+                name="MyTurfs"
+                component={MyTurfsScreen}
+                options={{ title: 'My Turfs' }}
             />
         </Stack.Navigator>
     );

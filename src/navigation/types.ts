@@ -55,6 +55,7 @@ export type TurfsStackParamList = {
     };
     CreateTurf: undefined;
     ManageSlots: { turfId: string; turfName: string };
+    MyTurfs: undefined;
 };
 
 /**
